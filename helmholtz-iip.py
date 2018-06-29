@@ -2,7 +2,7 @@
 from firedrake import *
 
 # Define wavenumber
-k = 10.0
+k = 30.0
 
 # Create a mesh
 mesh = UnitSquareMesh(10*k, 10*k)
@@ -16,16 +16,27 @@ v = TestFunction(V)
 
 # Define right-hand side function - Gaussian approximation of point-source - gives circular waves
 f = Function(V)
-x, y = SpatialCoordinate(mesh)
+g = Function(V)
+x = SpatialCoordinate(mesh)
 x_centre = 0.5
 y_centre = 0.5
-f.interpolate(exp((-(10.1/pi)**2)*((x-x_centre)**2 + (y-y_centre)**2)))
-#f.interpolate((1+8*pi*pi)*cos(x*pi*2)*cos(y*pi*2))  # not Gaussian atm
+#f.interpolate(exp((-(k/pi)**2)*((x[0]-x_centre)**2 + (x[1]-y_centre)**2)))
+#f.interpolate(1.0)
+
+# Right-hand side g is the boundary condition given by a plane wave with direction d
+nu = FacetNormal(mesh)
+
+# Unsure if the following is the correct way to allow us to take a dot product with u
+d = as_vector([1.0/sqrt(2.0),1.0/sqrt(2.0)])
+
+# Boundary condition
+g=1j*k*exp(1j*k*dot(x,d))*(dot(d,nu)-1)
+
 
 
 # Define sesquilinear form and antilinear functional
 a = (inner(grad(u), grad(v)) - k**2*inner(u,v)) * dx - (1j* k * inner(u,v)) * ds
-L = (inner(f,v)) * dx
+L =  inner(g,v)*ds#inner(f,v) * dx +
 
 # Define numerical solution
 u_h = Function(V)

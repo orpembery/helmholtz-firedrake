@@ -1,11 +1,15 @@
 # Modified from the firedrake `Simple Helmholtz equation' demo
 from firedrake import *
+from math import ceil # so that we can define the mesh size
 
 # Define wavenumber
-k = 30.0
+k = 50.0
+
+# Define mesh size to eliminate pollution effect
+mesh_size = ceil(k**(1.5))
 
 # Create a mesh
-mesh = UnitSquareMesh(10*k, 10*k)
+mesh = UnitSquareMesh(mesh_size, mesh_size)
 
 # Define function space - continuous piecewise linear
 V = FunctionSpace(mesh, "CG", 1)

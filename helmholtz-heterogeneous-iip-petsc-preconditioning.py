@@ -92,7 +92,7 @@ gmres_solver_obj = solver.ksp
 
 A_obj, not_needed = gmres_solver_obj.getOperators() # PETSc operators corresponding to A (and a preconditioner, but it doesn't matter what it is, because we're about to replace it
 
-# The PETSc documentation (http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCSetOperators.html) says you need to do the as you're keeping A_obj, but it didn't work. I don't understand why.
+# The PETSc documentation (http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCSetOperators.html) says you need to do the following as you're keeping A_obj, but it didn't work. I don't understand why.
 #A_obj.PetscObjectReference()
 
 gmres_solver_obj.setOperators(A_obj,P_LU) # This should set the system matrix (or its action) as A_obj and the preconditioner (or its action) as P_LU

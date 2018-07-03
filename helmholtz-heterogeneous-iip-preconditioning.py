@@ -1,4 +1,4 @@
-# Modified from the firedrake `Simple Helmholtz equation' demo
+# Modified from the firedrake `Simple Helmholtz equation' demo and https://www.firedrakeproject.org/demos/saddle_point_systems.py.html
 from firedrake import *
 from math import ceil # so that we can define the mesh size
 
@@ -47,10 +47,10 @@ A=as_matrix([[1.0,0.0],[0.0,1.0]])
 
 n = Coefficient(V)
 
-n=1.0
+#n=1.0
 
-#n_centre=as_vector([0.5,0.5])
-#n = 0.5+2*abs(x - n_centre)**2
+n_centre=as_vector([0.5,0.5])
+n = 0.5+abs(x - n_centre)**2
 
 # Define sesquilinear form and antilinear functional
 a = (inner(A * grad(u), grad(v)) - k**2 * inner(real(n) * u,v)) * dx - (1j* k * inner(u,v)) * ds # real(n) is just a failsafe
@@ -59,8 +59,45 @@ L =  inner(g,v)*ds#inner(f,v) * dx +
 # Define numerical solution
 u_h = Function(V)
 
-# Solve using a direct LU solver
-solve(a == L, u_h, solver_parameters={'ksp_type': 'gmres', 'pc_type': 'lu'})
+# Define the problem with respect to which we will precondition
+
+A_pre = Coefficient(V_A)
+
+A_pre = A=as_matrix([[1.0,0.0],[0.0,1.0]])
+
+n_pre = Coefficient(V)
+
+n_pre = 1.0
+
+# Define sesquilinear form and antilinear functional for preconditioning
+a_pre = (inner(A_pre * grad(u), grad(v)) - k**2 * inner(real(n_pre) * u,v)) * dx - (1j* k * inner(u,v)) * ds # real(n) is just a failsafe
+
+
+# Because we're using a preconditioner, we set up the solver in slightly more detail
+parameters = {'ksp_type': 'gmres', # use GMRES
+              'pc_type': 'lu', # use an LU factorisation of the preconditioning matrix as a precondition (i.e., compute the exact inverse)
+              'ksp_norm_type': 'unpreconditioned'} # measure convergence in the unpreconditioned norm
+
+A = assemble(a, mat_type = 'aij') # assemble the monolithic matrix
+
+P = assemble(a_pre, mat_type = 'aij') # same for preconditioning problem
+
+solver = LinearSolver(A,P=P, solver_parameters = parameters)
+
+b = assemble(L) # assemble right-hand side
+
+solver.solve(u_h,b)
+
+# Print GMRES convergence
+print(solver.ksp.getIterationNumber())
+
+# Now attempting to build on this for UQ
+
+# Trying to extract the (LU-decomposition) preconditioner
+pc_obj = solver.ksp.pc
+B_not_needed, P_LU = pc_obj.getOperators() # PETSc operator corresponding to the LU decomposition of P. B is not needed
+
+# Now (just as a test) do the same calculation as above, but this time we pass in the preconditioner LU object
 
 # Write solution to a file for visualising
 File("helmholtz.pvd").write(u_h)

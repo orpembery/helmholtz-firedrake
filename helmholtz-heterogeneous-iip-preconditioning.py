@@ -3,7 +3,7 @@ from firedrake import *
 from math import ceil # so that we can define the mesh size
 
 # Define wavenumber
-k = 10.0
+k = 40.0
 
 # Define mesh size to eliminate pollution effect
 mesh_size = ceil(k**(1.5))
@@ -63,23 +63,26 @@ n_pre = 1.0
 a_pre = (inner(A_pre * grad(u), grad(v)) - k**2 * inner(real(n_pre) * u,v)) * dx - (1j* k * inner(u,v)) * ds # real(n) is just a failsafe
 
 
-# Because we're using a preconditioner, we set up the solver in slightly more detail
-parameters = {'ksp_type': 'gmres', # use GMRES
-              'pc_type': 'lu', # use an LU factorisation of the preconditioning matrix as a preconditioner (i.e., compute the exact inverse)
-              'ksp_norm_type': 'unpreconditioned'} # measure convergence in the unpreconditioned norm
+# The following code courtesy of Lawrence Mitchell - it assumes the preconditioner doesn't change - for QMC/MCMC would need to do something else I suspect (i.e. call on Lawrence again :P)
 
-A_mat = assemble(a, mat_type = 'aij') # assemble the monolithic matrix
+problem = LinearVariationalProblem(a, L, u_h, aP=a_pre, constant_jacobian=False)
+solver = LinearVariationalSolver(problem, solver_parameters={"ksp_type": "gmres",
+                                                            "mat_type": "aij",
+                                                            "pmat_type": "aij",
+                                                            "snes_lag_preconditioner": -1,
+                                                            "pc_type": "lu",
+                                                            "ksp_reuse_preconditioner": True,
+                                                            'ksp_norm_type': 'unpreconditioned'})
 
-P_mat = assemble(a_pre, mat_type = 'aij') # same for preconditioning problem
+# If this was going in a loop:
+#for i in range(_):
+# would also change parameters
+#   solver.solve()
 
-solver = LinearSolver(A_mat,P=P_mat, solver_parameters = parameters)
+solver.solve()
 
-b = assemble(L) # assemble right-hand side
-
-solver.solve(u_h,b)
-
-# Print GMRES convergence
-print(solver.ksp.getIterationNumber())
+# Print GMRES convergence - currently doesn't work
+print(solver.snes.ksp.getIterationNumber())
 
 # Write solution to a file for visualising
 File("helmholtz.pvd").write(u_h)

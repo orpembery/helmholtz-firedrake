@@ -1,6 +1,7 @@
 # Modified from the firedrake `Simple Helmholtz equation' demo and https://www.firedrakeproject.org/demos/saddle_point_systems.py.html
 from firedrake import *
 from math import ceil # so that we can define the mesh size
+from firedrake.petsc import PETSc # for PETSc
 
 # Define wavenumber
 k = 10.0
@@ -62,6 +63,28 @@ n_pre = 1.0
 # Define sesquilinear form and antilinear functional for preconditioning
 a_pre = (inner(A_pre * grad(u), grad(v)) - k**2 * inner(real(n_pre) * u,v)) * dx - (1j* k * inner(u,v)) * ds # real(n) is just a failsafe
 
+A_mat_pre = assemble(a_pre, mat_type = 'aij') # assemble preconditioning problem
+
+ksp = PETSc.KSP().create()
+ksp.setOperators(A_mat_pre,A_mat_pre)
+ksp.setUp()
+
+pc = ksp.pc
+pc.setType(pc.Type.LU)
+
+
+
+
+
+
+
+
+
+
+
+
+
+#### Probably wrong from this point on ######
 
 # These parameters are only for the initial solve, the main reason for which is to calculate the LU decomposition of the preconditioning problem
 precon_parameters = {'ksp_type': 'preonly', # only do an LU decomposition
@@ -85,7 +108,8 @@ B_not_needed, P_LU = pc_solver_obj.getOperators() # PETSc operator corresponding
 A_mat = A_mat_pre # for now, preconditioned problem is the same as solving problem
 
 gmres_parameters = {'ksp_type': 'gmres', # use GMRES
-                    'ksp_norm_type': 'unpreconditioned'} # measure convergence in the unpreconditioned norm
+                    'ksp_norm_type': 'unpreconditioned', # measure convergence in the unpreconditioned norm
+                    'pc_type': "lu"
 
 solver = LinearSolver(A_mat,solver_parameters = gmres_parameters)
 

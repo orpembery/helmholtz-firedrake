@@ -68,11 +68,11 @@ parameters = {'ksp_type': 'gmres', # use GMRES
               'pc_type': 'lu', # use an LU factorisation of the preconditioning matrix as a preconditioner (i.e., compute the exact inverse)
               'ksp_norm_type': 'unpreconditioned'} # measure convergence in the unpreconditioned norm
 
-A = assemble(a, mat_type = 'aij') # assemble the monolithic matrix
+A_mat = assemble(a, mat_type = 'aij') # assemble the monolithic matrix
 
-P = assemble(a_pre, mat_type = 'aij') # same for preconditioning problem
+P_mat = assemble(a_pre, mat_type = 'aij') # same for preconditioning problem
 
-solver = LinearSolver(A,P=P, solver_parameters = parameters)
+solver = LinearSolver(A_mat,P=P_mat, solver_parameters = parameters)
 
 b = assemble(L) # assemble right-hand side
 

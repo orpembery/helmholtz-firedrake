@@ -67,9 +67,9 @@ a_pre = (inner(A_pre * grad(u), grad(v)) - k**2 * inner(real(n_pre) * u,v)) * dx
 precon_parameters = {'ksp_type': 'preonly', # only do an LU decomposition
                      'pc_type': 'lu'}
 
-A_pre = assemble(a_pre, mat_type = 'aij') # assemble preconditioning problem
+A_mat_pre = assemble(a_pre, mat_type = 'aij') # assemble preconditioning problem
 
-solver_precon = LinearSolver(A_pre, solver_parameters = precon_parameters)
+solver_precon = LinearSolver(A_mat_pre, solver_parameters = precon_parameters)
 
 b = assemble(L) # assemble right-hand side
 
@@ -81,21 +81,22 @@ B_not_needed, P_LU = pc_solver_obj.getOperators() # PETSc operator corresponding
 
 # Now  do the same calculation as above (but with sesquilinear form a), but this time we pass in the preconditioner LU object
 
-A = assemble(a, mat_type = 'aij') # assemble the monolithic matrix
+#A_mat = assemble(a, mat_type = 'aij') # assemble the monolithic matrix
+A_mat = A_mat_pre # for now, preconditioned problem is the same as solving problem
 
 gmres_parameters = {'ksp_type': 'gmres', # use GMRES
                     'ksp_norm_type': 'unpreconditioned'} # measure convergence in the unpreconditioned norm
 
-solver = LinearSolver(A,solver_parameters = gmres_parameters)
+solver = LinearSolver(A_mat,solver_parameters = gmres_parameters)
 
 gmres_solver_obj = solver.ksp
 
-A_obj, not_needed = gmres_solver_obj.getOperators() # PETSc operators corresponding to A (and a preconditioner, but it doesn't matter what it is, because we're about to replace it
+A_mat_obj, not_needed = gmres_solver_obj.getOperators() # PETSc operators corresponding to A (and a preconditioner, but it doesn't matter what it is, because we're about to replace it
 
 # The PETSc documentation (http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCSetOperators.html) says you need to do the following as you're keeping A_obj, but it didn't work. I don't understand why.
 #A_obj.PetscObjectReference()
 
-gmres_solver_obj.setOperators(A_obj,P_LU) # This should set the system matrix (or its action) as A_obj and the preconditioner (or its action) as P_LU
+gmres_solver_obj.setOperators(A_mat_obj,P_LU) # This should set the system matrix (or its action) as A_obj and the preconditioner (or its action) as P_LU
 
 solver.solve(u_h,b) # again, not fussing about storing the solution
 

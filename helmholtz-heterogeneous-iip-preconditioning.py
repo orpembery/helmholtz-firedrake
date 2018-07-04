@@ -26,8 +26,8 @@ nu = FacetNormal(mesh)
 
 d = as_vector([1.0/sqrt(2.0),1.0/sqrt(2.0)])
 
-# Boundary condition
-g=1j*k*exp(1j*k*dot(x,d))*(dot(d,nu)-1)
+# Boundary condition - a plane wave impedance boundary condition on the `incoming' edges, and a zero impedance condition (i.e. outgoing waves) on the other boundaries
+g = conditional(dot(d,nu) < 0.0,1j*k*exp(1j*k*dot(x,d))*(dot(d,nu)-1),0.0)
 
 # Define coefficients
 # Define function space for coefficients

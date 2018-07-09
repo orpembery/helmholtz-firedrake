@@ -18,43 +18,45 @@ V = FunctionSpace(mesh, "CG", 1)
 u = TrialFunction(V)
 v = TestFunction(V)
 
-# Define right-hand side function - Gaussian approximation of point-source - gives circular waves
-f = Coefficient(V)
-g = Coefficient(V)
-x = SpatialCoordinate(mesh)
-x_centre = 0.5
-y_centre = 0.5
-#f.interpolate(exp((-(k/pi)**2)*((x[0]-x_centre)**2 + (x[1]-y_centre)**2)))
-#f.interpolate(1.0)
-
 # Right-hand side g is the boundary condition given by a plane wave with direction d
+x = SpatialCoordinate(mesh)
+
 nu = FacetNormal(mesh)
 
-# Unsure if the following is the correct way to allow us to take a dot product with u
 d = as_vector([1.0/sqrt(2.0),1.0/sqrt(2.0)])
 
-# Boundary condition
 g=1j*k*exp(1j*k*dot(x,d))*(dot(d,nu)-1)
 
 # Define coefficients
 
 # Define function space for coefficients
-V_A = TensorFunctionSpace(mesh, "CG", 1, symmetry=True)
+V_A = TensorFunctionSpace(mesh, "DG", 0, symmetry=True)
 
-A=Coefficient(V_A)
+A=Function(V_A)
 
-A=as_matrix([[1.0,0.0],[0.0,1.0]])
+A_expr = as_matrix([[1.0,0.0],[0.0,1.0]])
 
-n = Coefficient(V)
+# THE ABOVE ISN'T FIXED IN A WAY THAT WILL EASILY GENERALISE TO HETEROGENEOUS COEFFS YET
 
-n=1.0
+# Experiment to see if I can use a different space for coefficients
+n = Function(V)
+
+n.interpolate(Expression(1))
+
+#n.interpolate(Expression('1.0'))
+
+#n = interpolate(1,V_n)
+
+#n = 1.0
+
+#n=1
 
 #n_centre=as_vector([0.5,0.5])
 #n = 0.5+2*abs(x - n_centre)**2
 
 # Define sesquilinear form and antilinear functional
 a = (inner(A * grad(u), grad(v)) - k**2 * inner(real(n) * u,v)) * dx - (1j* k * inner(u,v)) * ds # real(n) is just a failsafe
-L =  inner(g,v)*ds#inner(f,v) * dx +
+L =  inner(g,v)*ds
 
 # Define numerical solution
 u_h = Function(V)
@@ -71,8 +73,14 @@ try:
 except:
   warning("Matplotlib not imported")
 
+#try:
+#  plot(mesh)
+#  plt.show()
+#except:
+#  warning("Dunno")
+  
 try:
-  plot(u_h)
+  plot(u_h,num_sample_points=1)
 except Exception as e:
   warning("Cannot plot figure. Error msg: '%s'" % e)
 

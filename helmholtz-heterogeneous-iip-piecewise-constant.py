@@ -4,11 +4,11 @@ from math import ceil # so that we can define the mesh size
 import numpy as np
 
 # Define wavenumber
-k = 10.0
+k = 30.0
 
 # Define number of `pieces' in piecewise constant coefficients - double
 
-coeff_pieces = 2
+coeff_pieces = 10
 
 # Define mesh size to eliminate pollution effect
 mesh_size = ceil(k**(1.5))
@@ -42,7 +42,10 @@ def Iab(x,a,b) : # indicator function on [a,b] - x is a single coordinate of a s
 
 n = 1.0 # background
 
-n_values =  0.1 * np.array([[-1.0,2.0],[-3.0,4.0]]) # confusingly, going along rows corresponds to increasing y, and going down rows corresponds to increasing x
+np.random.seed(1) # Set random seed
+
+n_values =  0.0 * (2.0 * np.random.random_sample([coeff_pieces,coeff_pieces]) - 1.0) # Uniform (-1,1) random variates
+# confusingly, going along rows of n_values corresponds to increasing y, and going down rows corresponds to increasing x
 
 # For each `piece', perturb n by the correct value on that piece
 for xii in range(0,coeff_pieces):
@@ -65,13 +68,19 @@ plt.show()
 
 A = as_matrix([[1.0,0.0],[0.0,1.0]]) # background
 
-np.random.seed(1) # Set random seed
+A_values = 0.4 * (2.0 * np.random.random_sample([coeff_pieces,coeff_pieces,2,2]) - 1.0) # Uniform (-1,1) random variates
 
-A_values = 0.0 * np.random.random_sample([coeff_pieces,coeff_pieces,2,2]) # because it's easier than manually specifying it, although this doesn't give symmetric A, which is bad - NEED TO FIX
+# Will symmetrise a 2x2 matrix
+def symmetrise(A):
+  A_lower = np.tril(A,k=-1)
+  return np.diagflat(np.diagonal(A).copy()) + A_lower + np.transpose(A_lower)
+
 
 for xii in range(0,coeff_pieces-1):
   for yii in range(0,coeff_pieces-1):
-    A += as_matrix(A_values[xii,yii,:,:]) * Iab(x[0],xii/coeff_pieces,(xii+1)/coeff_pieces) * Iab(x[1],yii/coeff_pieces,(yii+1)/coeff_pieces)
+    # Symmetrise first
+    A_symmetrised = symmetrise(A_values[xii,yii,:,:])
+    A += as_matrix(A_symmetrised) * Iab(x[0],xii/coeff_pieces,(xii+1)/coeff_pieces) * Iab(x[1],yii/coeff_pieces,(yii+1)/coeff_pieces)
 
 # Currently haven't checked whether A is doing what I expect - the code below (in some form) should allow me to check, if I can figure out how to plot A....
    

@@ -38,19 +38,22 @@ def heaviside(x): # x here is a single coordinate of a SpatialCoordinate
   return 0.5 * (sign(real(x)) + 1.0)
 
 def Iab(x,a,b) : # indicator function on [a,b] - x is a single coordinate of a spatial coordinate, 0.0  <= a < b <= 1 are doubles
-  return 0.5 * ( heaviside(x-a) + 1.0 - heaviside(x-b) )
+  return heaviside(x-a) - heaviside(x-b)
 
 n = 1.0 # background
 
-n_values = 10.0 * np.array([[0.1,-0.05],[-0.03,0.08]])
+n_values =  0.1 * np.array([[-1.0,2.0],[-3.0,4.0]]) # confusingly, going along rows corresponds to increasing y, and going down rows corresponds to increasing x
 
-for xii in range(0,coeff_pieces-1):
-  for yii in range(0,coeff_pieces-1):
+# For each `piece', perturb n by the correct value on that piece
+for xii in range(0,coeff_pieces):
+  for yii in range(0,coeff_pieces):
     n += n_values[xii,yii] * Iab(x[0],xii/coeff_pieces,(xii+1)/coeff_pieces) * Iab(x[1],yii/coeff_pieces,(yii+1)/coeff_pieces)
 
 # Plot n
 
-n_func = Function(V)
+V_n = FunctionSpace(mesh,"DG", 0)
+
+n_func = Function(V_n)
 
 n_func.interpolate(n)
 
@@ -60,7 +63,31 @@ plot(n_func,num_sample_points=1)
 
 plt.show()
 
-A = as_matrix([[1.0,0.0],[0.0,1.0]])
+A = as_matrix([[1.0,0.0],[0.0,1.0]]) # background
+
+np.random.seed(1) # Set random seed
+
+A_values = 0.0 * np.random.random_sample([coeff_pieces,coeff_pieces,2,2]) # because it's easier than manually specifying it, although this doesn't give symmetric A, which is bad - NEED TO FIX
+
+for xii in range(0,coeff_pieces-1):
+  for yii in range(0,coeff_pieces-1):
+    A += as_matrix(A_values[xii,yii,:,:]) * Iab(x[0],xii/coeff_pieces,(xii+1)/coeff_pieces) * Iab(x[1],yii/coeff_pieces,(yii+1)/coeff_pieces)
+
+# Currently haven't checked whether A is doing what I expect - the code below (in some form) should allow me to check, if I can figure out how to plot A....
+   
+#V_A = VectorFunctionSpace(mesh, "DG", 0)
+
+#A_func = Function(V_A)
+
+#A_func.interpolate(A)
+
+#A_func_temp = Function(V_n)
+
+#A_func_temp.interpolate(A_func.sub([0,0]))
+
+#plot(A_func_temp,num_sample_points=1)
+
+#plt.show()
 
 # Define sesquilinear form and antilinear functional
 a = (inner(A * grad(u), grad(v)) - k**2 * inner(real(n) * u,v)) * dx - (1j* k * inner(u,v)) * ds # real(n) is just a failsafe
@@ -73,7 +100,7 @@ u_h = Function(V)
 solve(a == L, u_h, solver_parameters={'ksp_type': 'gmres', 'pc_type': 'lu'})
 
 # Write solution to a file for visualising
-File("helmholtz.pvd").write(u_h)
+File("helmholtz-piecewise.pvd").write(u_h)
 
 # Plot the image
 try:
@@ -81,12 +108,6 @@ try:
 except:
   warning("Matplotlib not imported")
 
-#try:
-#  plot(mesh)
-#  plt.show()
-#except:
-#  warning("Dunno")
-  
 try:
   plot(u_h,num_sample_points=1)
 except Exception as e:

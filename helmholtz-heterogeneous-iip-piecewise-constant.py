@@ -44,8 +44,12 @@ n = 1.0 # background
 
 np.random.seed(1) # Set random seed
 
-n_values =  0.0 * (2.0 * np.random.random_sample([coeff_pieces,coeff_pieces]) - 1.0) # Uniform (-1,1) random variates
+
+
+n_values =  0.5 * (2.0 * np.random.random_sample([coeff_pieces,coeff_pieces]) - 1.0) # Uniform (-1,1) random variates
 # confusingly, going along rows of n_values corresponds to increasing y, and going down rows corresponds to increasing x
+
+n_values_constant = Constant(n_values,domain=mesh)
 
 # For each `piece', perturb n by the correct value on that piece
 for xii in range(0,coeff_pieces):
@@ -68,19 +72,31 @@ plt.show()
 
 A = as_matrix([[1.0,0.0],[0.0,1.0]]) # background
 
-A_values = 0.4 * (2.0 * np.random.random_sample([coeff_pieces,coeff_pieces,2,2]) - 1.0) # Uniform (-1,1) random variates
+A_values = 0.5 * (2.0 * np.random.random_sample([coeff_pieces**2,2,2]) - 1.0) # Uniform (-1,1) random variates
+
+# We want each 2x2 `piece' of A_values to be an entry in a list, so that we can then turn each of them into a Firedrake `Constant` (I hope that this will mean Firedrake passes them as arguments to the C kernel, as documented on the `Constant` documentation page
+
+A_values_list = list(A_values)
 
 # Will symmetrise a 2x2 matrix
 def symmetrise(A):
   A_lower = np.tril(A,k=-1)
   return np.diagflat(np.diagonal(A).copy()) + A_lower + np.transpose(A_lower)
 
+# Symmetrise all the matrices
+A_values_list = [symmetrise(A_dummy) for A_dummy in A_values_list]
+
+# Make all the matrices into Firedrake `Constant`s
+
+A_values_list = [Constant(A_dummy) for A_dummy in A_values_list]
+
+# This extracts the relevant element of the list, given a 2-d index
+def list_extract(values_list,x_coord,y_coord,coord_length): # The list should contain coord_length**2 elements
+  return values_list[x_coord + y_coord * coord_length]
 
 for xii in range(0,coeff_pieces-1):
   for yii in range(0,coeff_pieces-1):
-    # Symmetrise first
-    A_symmetrised = symmetrise(A_values[xii,yii,:,:])
-    A += as_matrix(A_symmetrised) * Iab(x[0],xii/coeff_pieces,(xii+1)/coeff_pieces) * Iab(x[1],yii/coeff_pieces,(yii+1)/coeff_pieces)
+    A += list_extract(A_values_list,xii,yii,coeff_pieces) * Iab(x[0],xii/coeff_pieces,(xii+1)/coeff_pieces) * Iab(x[1],yii/coeff_pieces,(yii+1)/coeff_pieces)
 
 # Currently haven't checked whether A is doing what I expect - the code below (in some form) should allow me to check, if I can figure out how to plot A....
    

@@ -1,7 +1,8 @@
 Testing - plot in paraview
 One written as function, write tests
-Implement matrices in numpy arrays like Jack said
+Implement matrices in numpy arrays like Jack said/ Figure out how to solve recursion problem
 Figure out whether non-constant on the boundary is an issue
 Check have fully implemented non-constant on boundary - A and n
 Write as function
 Finish different cases
+

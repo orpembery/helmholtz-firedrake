@@ -1,35 +1,36 @@
 from firedrake import *
 import numpy as np
 from functools import reduce
+from warnings import warn
+
+# Write files that test function definitions
+
 
 ### User-changeable parameters ###
 
-k = 10.0 # The wavenumber - real
+k = 30.0 # The wavenumber - real
 
-mesh_condition = '3/2' # should be '3/2' or '2' depending on whether h \lesssim k^{-3/2} or h \lesssim k^{-2}
+mesh_condition = 1.5 # h ~ k**mesh_condition) - real
 
-coeff_pieces = 10 # Number of `pieces' the piecewise constant coefficient has in each direction - int
+coeff_pieces = 16 # Number of `pieces' the piecewise constant coefficient has in each direction - int
 
 n_background = 'constant' # The background with respect to which we precondition. Options are 'constant', 'bad', or 'good', which correspond to the background being 1.0, n jumping down, n jumping up
 #FILL IN MORE DETAIL HERE WHEN IT'S DONE
 
-noise_level_n = 0.1 # The size of the noise in n, i.e. ||n-n_0||_{L^\infty} = noise_level_n, when we don't scale with k
+noise_level_n = 0.2 # The size of the noise in n, i.e. ||n-n_0||_{L^\infty} = noise_level_n, when we don't scale with k
 
 A_background = 'constant' # COMMENT THIS LIKE FOR n, BUT I THINK THE JUMPS WILL GO THE OTHER WAY
 
-noise_level_A = 0.05 # As for noise_level_n, but for A
+noise_level_A = 0.0 # As for noise_level_n, but for A
 
 num_repeats = 50 # number of repeats to do
-
-
 
 ### The user does not need to change anything below this point ###
 
 
 
 # Define mesh size to eliminate pollution effect
-mesh_size = np.ceil(k**(1.5))
-# PUT IF IN HERE
+mesh_size = np.ceil(k**(mesh_condition)/np.sqrt(2.0)) # dividing by sqrt(2.0) because firedrake interprets the mesh size (in UnitSquareMesh as the number of cells in the x and y directions, whereas we want k**msh_condition to be the diameter of the cell
 
 # Create a mesh
 mesh = UnitSquareMesh(mesh_size, mesh_size)
@@ -58,68 +59,69 @@ def heaviside(x): # x here is a single coordinate of a SpatialCoordinate
 def Iab(x,a,b) : # indicator function on [a,b] - x is a single coordinate of a spatial coordinate, 0.0  <= a < b <= 1 are doubles
   return heaviside(x-a) - heaviside(x-b)
 
-# PUT IF IN HERE
-n_pre = 1.0 # background
+# Set background state
+if n_background == 'constant':
+  n_pre = 1.0
+else:
+  warn('Currently I''ve only implemented this for a constant background for n. Using n_background = ''constant''')
+  n_pre = 1.0
 
 n = n_pre
 
 np.random.seed(1) # Set random seed
 
-# PUT IF IN SO THAT IT SKIPS IF ZERO
 
-def n_noise(noise_level_n,coeff_pieces):
-    n_values =  noise_level_n * (2.0 * np.random.random_sample([coeff_pieces,coeff_pieces]) - 1.0) # Uniform (-1,1) random variates
-    # confusingly, going along rows of n_values corresponds to increasing y, and going down rows corresponds to increasing x
-    current_max = np.max(np.abs(n_values))
-    n_values = n_values*(noise_level_n/current_max)
-    return n_values
+if noise_level_n != 0.0:
+  def n_noise(noise_level_n,coeff_pieces):
+      n_values =  noise_level_n * (2.0 * np.random.random_sample([coeff_pieces,coeff_pieces]) - 1.0) # Uniform (-1,1) random variates
+      # confusingly, going along rows of n_values corresponds to increasing y, and going down rows corresponds to increasing x
+      return n_values
 
-n_values_constant = Constant(n_noise(noise_level_n,coeff_pieces),domain=mesh)
+  n_values_constant = Constant(n_noise(noise_level_n,coeff_pieces),domain=mesh)
 
-# For each `piece', perturb n by the correct value on that piece
-for xii in range(0,coeff_pieces):
-  for yii in range(0,coeff_pieces):
-    n += n_values_constant[xii,yii] * Iab(x[0],xii/coeff_pieces,(xii+1)/coeff_pieces) * Iab(x[1],yii/coeff_pieces,(yii+1)/coeff_pieces)
+  # For each `piece', perturb n by the correct value on that piece
+  for xii in range(0,coeff_pieces):
+    for yii in range(0,coeff_pieces):
+      n += n_values_constant[xii,yii] * Iab(x[0],xii/coeff_pieces,(xii+1)/coeff_pieces) * Iab(x[1],yii/coeff_pieces,(yii+1)/coeff_pieces)
 
-#IF IN HERE
-A_pre =  as_matrix([[1.0,0.0],[0.0,1.0]]) 
+if A_background == 'constant':
+  A_pre =  as_matrix([[1.0,0.0],[0.0,1.0]])
+else:
+  warn('Currently I''ve only implemented this for a constant background for A. Using A_background = ''constant''')
+  A_pre =  as_matrix([[1.0,0.0],[0.0,1.0]])
 
 A = A_pre
-# PUT IF IN SO THAT IT SKIPS IF ZERO
 
-def A_noise(noise_level_A,coeff_pieces): # Generates a list of the values of A on the different subdomains
-    # Will symmetrise a 2x2 matrix
-    def symmetrise(A):
-        A_lower = np.tril(A,k=-1)
-        return np.diagflat(np.diagonal(A).copy()) + A_lower + np.transpose(A_lower)
+if noise_level_A != 0.0:
+  def A_noise(noise_level_A,coeff_pieces): # Generates a list of the values of A on the different subdomains
+      # Will symmetrise a 2x2 matrix
+      def symmetrise(A):
+          A_lower = np.tril(A,k=-1)
+          return np.diagflat(np.diagonal(A).copy()) + A_lower + np.transpose(A_lower)
 
-    A_values = noise_level_A * (2.0 * np.random.random_sample([coeff_pieces**2,2,2]) - 1.0) # Uniform (-1,1) random variates
-    
-    A_values_list = list(A_values)
-    # We want each 2x2 `piece' of A_values to be an entry in a list, so that we can then turn each of them into a Firedrake `Constant` (I hope that this will mean Firedrake passes them as arguments to the C kernel, as documented on the `Constant` documentation page
-    
-    # Symmetrise all the matrices
-    A_values_list = [symmetrise(A_dummy) for A_dummy in A_values_list]
+      A_values = noise_level_A * (2.0 * np.random.random_sample([coeff_pieces**2,2,2]) - 1.0) # Uniform (-1,1) random variates
 
-    # Normalise the matrices so that the required noise level is acheived somewhere on the whole domain
-    current_max = reduce(lambda x,y: max(x,np.max(np.abs(y))),A_values_list,0) # calculate the current maximum
-    A_values_list = [A_dummy*(noise_level_A/current_max) for A_dummy in A_values_list]
-    
-    
-    return A_values_list
+      A_values_list = list(A_values)
+      # We want each 2x2 `piece' of A_values to be an entry in a list, so that we can then turn each of them into a Firedrake `Constant` (I hope that this will mean Firedrake passes them as arguments to the C kernel, as documented on the `Constant` documentation page
 
-A_values_list = A_noise(noise_level_A,coeff_pieces)
+      # Symmetrise all the matrices
+      A_values_list = [symmetrise(A_dummy) for A_dummy in A_values_list]
 
-A_values_constant_list = [Constant(A_dummy,domain=mesh) for A_dummy in A_values_list]
-  
-# This extracts the relevant element of the list, given a 2-d index
-def list_extract(values_list,x_coord,y_coord,coord_length): # The list should contain coord_length**2 elements
-  return values_list[x_coord + y_coord * coord_length]
 
-# Form A by looping over all the subdomains
-for xii in range(0,coeff_pieces-1):
-  for yii in range(0,coeff_pieces-1):
-    A += list_extract(A_values_constant_list,xii,yii,coeff_pieces) * Iab(x[0],xii/coeff_pieces,(xii+1)/coeff_pieces) * Iab(x[1],yii/coeff_pieces,(yii+1)/coeff_pieces)
+      return A_values_list
+
+  A_values_list = A_noise(noise_level_A,coeff_pieces)
+
+  A_values_constant_list = [Constant(A_dummy,domain=mesh) for A_dummy in A_values_list]
+
+  # This extracts the relevant element of the list, given a 2-d index
+  def list_extract(values_list,x_coord,y_coord,coord_length): # The list should contain coord_length**2 elements
+    return values_list[x_coord + y_coord * coord_length]
+
+  # Form A by looping over all the subdomains
+  for xii in range(0,coeff_pieces-1):
+    for yii in range(0,coeff_pieces-1):
+      A += list_extract(A_values_constant_list,xii,yii,coeff_pieces) * Iab(x[0],xii/coeff_pieces,(xii+1)/coeff_pieces) * Iab(x[1],yii/coeff_pieces,(yii+1)/coeff_pieces)
 
 
 # Define sesquilinear form and antilinear functional for real problem
@@ -144,35 +146,14 @@ solver = LinearVariationalSolver(problem, solver_parameters={"ksp_type": "gmres"
 
 
 # Now perform all the experiments
-try:
-  import matplotlib.pyplot as plt
-except:
-  warning("Matplotlib not imported")
-
-
 for repeat_ii in range(0,num_repeats):
     solver.solve()
 
-    # JUST FOR DEBUGGING, CHECK THE SOLUTION IS CHANGING
-    # Plot the image
-
-    #try:
-    #plot(u_h,num_sample_points=1)
-    #except Exception as e:
-    #  warning("Cannot plot figure. Error msg: '%s'" % e)
-
-    #try:
-    #plt.show()
-    #except Exception as e:
-    #  warning("Cannot show figure. Error msg: '%s'" % e)
-
-    # RECORD NUMBER OF GMRES ITS
     print(solver.snes.ksp.getIterationNumber())
     # Create new values of A and n
 
-    n_values_constant.assign(n_noise(noise_level_n,coeff_pieces))
+    if noise_level_n != 0.0:
+      n_values_constant.assign(n_noise(noise_level_n,coeff_pieces))
 
-    [A_dummy.assign(A_noise(noise_level_A,1)[0]) for A_dummy in A_values_constant_list] # All this does is generate correctly normalised realisation of symmetric 2x2 matrices one at a time, and replaces the values of the constants with these generate matrices
-
-
-    
+    if noise_level_A != 0.0:
+      [A_dummy.assign(A_noise(noise_level_A,1)[0]) for A_dummy in A_values_constant_list] # All this does is generate correctly normalised realisation of symmetric 2x2 matrices one at a time, and replaces the values of the constants with these generated matrices

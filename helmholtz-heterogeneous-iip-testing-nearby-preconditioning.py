@@ -158,12 +158,13 @@ def test_helmholtz_nearby_precon(k,mesh_condition,coeff_pieces,n_background,nois
 
   # For current date and time
   date_time = datetime.datetime(1,1,1) # This initialises the object. I don't understand why this is necessary
-
+  date_time = date_time.utcnow().isoformat()
+  
   # Write CSV
-  with open('nearby-preconditioning-test-output-' + date_time.utcnow().isoformat + '.csv', 'w', newline = '') as csvfile: # from https://docs.python.org/3.5/library/csv.html
+  with open('nearby-preconditioning-test-output-' + date_time + '.csv', 'w', newline = '') as csvfile: # from https://docs.python.org/3.5/library/csv.html
     file_writer = csv.writer(csvfile, delimiter = ',', quoting = csv.QUOTE_MINIMAL)
     file_writer.writerow(['Git hash', git_hash_string])
-    file_writer.writerow(['Date/Time',   date_time.utcnow().isoformat]) # Current time in UTC as an ISO string
+    file_writer.writerow(['Date/Time', date_time]) # Current time in UTC as an ISO string
     file_writer.writerow(['k',k ])
     file_writer.writerow(['mesh_condition',mesh_condition])
     file_writer.writerow(['coeff_pieces',coeff_pieces])

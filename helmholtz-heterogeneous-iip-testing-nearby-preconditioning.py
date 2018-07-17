@@ -26,7 +26,7 @@ A_background = 'constant' # COMMENT THIS LIKE FOR n, BUT I THINK THE JUMPS WILL 
 
 noise_level_A = 0.00 # As for noise_level_n, but for A
 
-num_repeats = 10 # number of repeats to do
+num_repeats = 100 # number of repeats to do
 
 ### The user does not need to change anything below this point ###
 

@@ -11,7 +11,7 @@ import csv
 
 ### User-changeable parameters ###
 
-k = 30.0 # The wavenumber - real
+#k = 10.0 # The wavenumber - real
 
 mesh_condition = 1.5 # h ~ k**mesh_condition) - real
 
@@ -26,11 +26,13 @@ A_background = 'constant' # COMMENT THIS LIKE FOR n, BUT I THINK THE JUMPS WILL 
 
 noise_level_A = 0.00 # As for noise_level_n, but for A
 
-num_repeats = 1 # number of repeats to do
+num_repeats = 10 # number of repeats to do
 
 ### The user does not need to change anything below this point ###
 
 def test_helmholtz_nearby_precon(k,mesh_condition,coeff_pieces,n_background,noise_level_n,A_background,noise_level_A,num_repeats):
+
+  print('Running with k = ' + str(k) + ' and noise_level_n = ' + str(noise_level_n))
 
   # Define mesh size to eliminate pollution effect
   mesh_size = np.ceil(k**(mesh_condition)/np.sqrt(2.0)) # dividing by sqrt(2.0) because firedrake interprets the mesh size (in UnitSquareMesh as the number of cells in the x and y directions, whereas we want k**msh_condition to be the diameter of the cell
@@ -176,6 +178,7 @@ def test_helmholtz_nearby_precon(k,mesh_condition,coeff_pieces,n_background,nois
     file_writer.writerow(['Iteration number','Number of GMRES iterations'])
       # Now perform all the experiments
     for repeat_ii in range(0,num_repeats):
+      print('Running repeat ' + str(repeat_ii))
       solver.solve()
 
       file_writer.writerow([repeat_ii,solver.snes.ksp.getIterationNumber()])
@@ -189,4 +192,16 @@ def test_helmholtz_nearby_precon(k,mesh_condition,coeff_pieces,n_background,nois
 
   return 'Test Completed'
 
-test_helmholtz_nearby_precon(k,mesh_condition,coeff_pieces,n_background,noise_level_n,A_background,noise_level_A,num_repeats)
+k_range = [10,20,30,40,50,60]
+
+noise_level_n_base_range = [0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]
+
+for k in k_range:
+
+  for noise_level_n_base in noise_level_n_base_range:
+
+    test_helmholtz_nearby_precon(k,mesh_condition,coeff_pieces,n_background,noise_level_n_base,A_background,noise_level_A,num_repeats)
+
+    test_helmholtz_nearby_precon(k,mesh_condition,coeff_pieces,n_background,noise_level_n_base / (k**0.5),A_background,noise_level_A,num_repeats)
+
+    test_helmholtz_nearby_precon(k,mesh_condition,coeff_pieces,n_background,noise_level_n_base / k,A_background,noise_level_A,num_repeats)

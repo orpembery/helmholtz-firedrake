@@ -15,7 +15,7 @@ import csv
 
 mesh_condition = 1.5 # h ~ k**mesh_condition) - real
 
-coeff_pieces = 14 # Number of `pieces' the piecewise constant coefficient has in each direction - int
+coeff_pieces = 20 # Number of `pieces' the piecewise constant coefficient has in each direction - int
 
 n_background = 'constant' # The background with respect to which we precondition. Options are 'constant', 'bad', or 'good', which correspond to the background being 1.0, n jumping down, n jumping up
 #FILL IN MORE DETAIL HERE WHEN IT'S DONE
@@ -82,12 +82,18 @@ def test_helmholtz_nearby_precon(k,mesh_condition,coeff_pieces,n_background,nois
         # confusingly, going along rows of n_values corresponds to increasing y, and going down rows corresponds to increasing x
         return n_values
 
-    n_values_constant = Constant(n_noise(noise_level_n,coeff_pieces),domain=mesh)
+    def ij(x,coeff_pieces): # x is Firedrake coord
+      return (np.floor(coeff_pieces * x[0].eval),floor(coeff_pieces * x[1].eval))
+    
+  n_values = Constant(n_noise(noise_level_n,coeff_pieces),domain=mesh)
+  n = n_values[ij(x,coeff_pieces)]
+  
+#    n_values_constant = Constant(n_noise(noise_level_n,coeff_pieces),domain=mesh)
 
     # For each `piece', perturb n by the correct value on that piece
-    for xii in range(0,coeff_pieces):
-      for yii in range(0,coeff_pieces):
-        n += n_values_constant[xii,yii] * Iab(x[0],xii/coeff_pieces,(xii+1)/coeff_pieces) * Iab(x[1],yii/coeff_pieces,(yii+1)/coeff_pieces)
+#    for xii in range(0,coeff_pieces):
+#      for yii in range(0,coeff_pieces):
+#        n += n_values_constant[xii,yii] * Iab(x[0],xii/coeff_pieces,(xii+1)/coeff_pieces) * Iab(x[1],yii/coeff_pieces,(yii+1)/coeff_pieces)
 
   if A_background == 'constant':
     A_pre =  as_matrix([[1.0,0.0],[0.0,1.0]])
@@ -192,9 +198,13 @@ def test_helmholtz_nearby_precon(k,mesh_condition,coeff_pieces,n_background,nois
 
   return 'Test Completed'
 
-k_range = [10,20,30,40,50,60]
+#k_range = [10,20,30,40,50,60]
 
-noise_level_n_base_range = [0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]
+#noise_level_n_base_range = [0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]
+
+k_range = [10]
+
+noise_level_n_base_range = [0.1]
 
 for k in k_range:
 

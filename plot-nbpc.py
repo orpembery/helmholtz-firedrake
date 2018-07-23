@@ -36,16 +36,16 @@ for ii in range(len(all_csv_list)):
         csv_reader = csv.reader(csvfile,delimiter=",")
         row_index = 0
         for row in csv_reader:
-           #print(row_index)
+            #print(row_index)
             # this is a bit hacky at the moment
-           if row_index == 2:
-               results[0,ii] = row[1]
-           elif row_index == 6:
-               results[1,ii] = row[1]
-               # leave extra rows to fill in later
-           elif row_index >= 11:
-               results[row_index-7,ii] = row[1]
-           row_index = row_index + 1
+            if row_index == 2:
+                results[0,ii] = row[1]
+            elif row_index == 6:
+                results[1,ii] = row[1]
+                # leave extra rows to fill in later
+            elif row_index >= 11:
+                results[row_index-7,ii] = row[1]
+            row_index = row_index + 1
 
 # add in extra rows so that it's easy (I hope) to extract the results for a given master_noise_level
 # to clarify (using python indexing), row [1] gives the noise_level, row[2] gives the noise level * sqrt(k) and row [3] gives the noise level * k

@@ -36,10 +36,10 @@ g=1j*k*exp(1j*k*dot(x,d))*(dot(d,nu)-1)
 # Define coefficients
 
 def heaviside(x): # x here is a single coordinate of a SpatialCoordinate
-  return 0.5 * (sign(real(x)) + 1.0)
+    return 0.5 * (sign(real(x)) + 1.0)
 
 def Iab(x,a,b) : # indicator function on [a,b] - x is a single coordinate of a spatial coordinate, 0.0  <= a < b <= 1 are doubles
-  return heaviside(x-a) - heaviside(x-b)
+    return heaviside(x-a) - heaviside(x-b)
 
 np.random.seed(1) # Set random seed
 
@@ -51,9 +51,9 @@ A = as_matrix(np.array([[1.0,0.0],[0.0,1.0]]))
 n = 1.0
 
 def n_noise(noise_level_n,coeff_pieces):
-        n_values =  noise_level_n * (2.0 * np.random.random_sample([coeff_pieces,coeff_pieces]) - 1.0) # Uniform (-1,1) random variates
+    n_values =  noise_level_n * (2.0 * np.random.random_sample([coeff_pieces,coeff_pieces]) - 1.0) # Uniform (-1,1) random variates
         # confusingly, going along rows of n_values corresponds to increasing y, and going down rows corresponds to increasing x
-        return n_values
+    return n_values
 
 n_values_constant = Constant(n_noise(noise_level_n,coeff_pieces),domain=mesh)
 

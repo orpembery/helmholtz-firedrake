@@ -36,10 +36,10 @@ g=1j*k*exp(1j*k*dot(x,d))*(dot(d,nu)-1)
 # Define coefficients
 
 def heaviside(x): # x here is a single coordinate of a SpatialCoordinate
-  return 0.5 * (sign(real(x)) + 1.0)
+    return 0.5 * (sign(real(x)) + 1.0)
 
 def Iab(x,a,b) : # indicator function on [a,b] - x is a single coordinate of a spatial coordinate, 0.0  <= a < b <= 1 are doubles
-  return heaviside(x-a) - heaviside(x-b)
+    return heaviside(x-a) - heaviside(x-b)
 
   # Will symmetrise a 2x2 matrix
 def symmetrise(A):
@@ -71,13 +71,13 @@ A_values_constant_list = [Constant(A_dummy,domain=mesh) for A_dummy in A_values_
 
 # This extracts the relevant element of the list, given a 2-d index - this enables us to, given a subdomain index [xii,yii], extract the correct matrix from the list of matrices
 def list_extract(values_list,x_coord,y_coord,coord_length): # The list should contain coord_length**2 elements
-  return values_list[x_coord + y_coord * coord_length]
+    return values_list[x_coord + y_coord * coord_length]
 
 # Form A by looping over all the subdomains
 for xii in range(0,coeff_pieces-1):
-  for yii in range(0,coeff_pieces-1):
-    #A = A + list_extract(A_values_constant_list,xii,yii,coeff_pieces) * Iab(x[0],xii/coeff_pieces,(xii+1)/coeff_pieces) * Iab(x[1],yii/coeff_pieces,(yii+1)/coeff_pieces)
-    A = A + Constant(np.array([[0.0,0.0],[0.0,0.0]]))
+    for yii in range(0,coeff_pieces-1):
+        #A = A + list_extract(A_values_constant_list,xii,yii,coeff_pieces) * Iab(x[0],xii/coeff_pieces,(xii+1)/coeff_pieces) * Iab(x[1],yii/coeff_pieces,(yii+1)/coeff_pieces)
+        A = A + Constant(np.array([[0.0,0.0],[0.0,0.0]]))
 
 ### Fairly sure error above here ###
     

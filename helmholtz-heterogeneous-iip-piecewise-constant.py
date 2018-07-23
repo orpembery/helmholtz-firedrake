@@ -35,10 +35,10 @@ g=1j*k*exp(1j*k*dot(x,d))*(dot(d,nu)-1)
 # Define coefficients
 
 def heaviside(x): # x here is a single coordinate of a SpatialCoordinate
-  return 0.5 * (sign(real(x)) + 1.0)
+    return 0.5 * (sign(real(x)) + 1.0)
 
 def Iab(x,a,b) : # indicator function on [a,b] - x is a single coordinate of a spatial coordinate, 0.0  <= a < b <= 1 are doubles
-  return heaviside(x-a) - heaviside(x-b)
+    return heaviside(x-a) - heaviside(x-b)
 
 n = 1.0 # background
 
@@ -53,8 +53,8 @@ n_values_constant = Constant(n_values,domain=mesh)
 
 # For each `piece', perturb n by the correct value on that piece
 for xii in range(0,coeff_pieces):
-  for yii in range(0,coeff_pieces):
-    n += n_values[xii,yii] * Iab(x[0],xii/coeff_pieces,(xii+1)/coeff_pieces) * Iab(x[1],yii/coeff_pieces,(yii+1)/coeff_pieces)
+    for yii in range(0,coeff_pieces):
+        n += n_values[xii,yii] * Iab(x[0],xii/coeff_pieces,(xii+1)/coeff_pieces) * Iab(x[1],yii/coeff_pieces,(yii+1)/coeff_pieces)
 
 # Plot n
 
@@ -80,8 +80,8 @@ A_values_list = list(A_values)
 
 # Will symmetrise a 2x2 matrix
 def symmetrise(A):
-  A_lower = np.tril(A,k=-1)
-  return np.diagflat(np.diagonal(A).copy()) + A_lower + np.transpose(A_lower)
+    A_lower = np.tril(A,k=-1)
+    return np.diagflat(np.diagonal(A).copy()) + A_lower + np.transpose(A_lower)
 
 # Symmetrise all the matrices
 A_values_list = [symmetrise(A_dummy) for A_dummy in A_values_list]
@@ -92,11 +92,11 @@ A_values_list = [Constant(A_dummy) for A_dummy in A_values_list]
 
 # This extracts the relevant element of the list, given a 2-d index
 def list_extract(values_list,x_coord,y_coord,coord_length): # The list should contain coord_length**2 elements
-  return values_list[x_coord + y_coord * coord_length]
+    return values_list[x_coord + y_coord * coord_length]
 
 for xii in range(0,coeff_pieces-1):
-  for yii in range(0,coeff_pieces-1):
-    A += list_extract(A_values_list,xii,yii,coeff_pieces) * Iab(x[0],xii/coeff_pieces,(xii+1)/coeff_pieces) * Iab(x[1],yii/coeff_pieces,(yii+1)/coeff_pieces)
+    for yii in range(0,coeff_pieces-1):
+        A += list_extract(A_values_list,xii,yii,coeff_pieces) * Iab(x[0],xii/coeff_pieces,(xii+1)/coeff_pieces) * Iab(x[1],yii/coeff_pieces,(yii+1)/coeff_pieces)
 
 # Currently haven't checked whether A is doing what I expect - the code below (in some form) should allow me to check, if I can figure out how to plot A....
    
@@ -129,16 +129,16 @@ File("helmholtz-piecewise.pvd").write(u_h)
 
 # Plot the image
 try:
-  import matplotlib.pyplot as plt
+    import matplotlib.pyplot as plt
 except:
-  warning("Matplotlib not imported")
+    warning("Matplotlib not imported")
 
 try:
-  plot(u_h,num_sample_points=1)
+    plot(u_h,num_sample_points=1)
 except Exception as e:
-  warning("Cannot plot figure. Error msg: '%s'" % e)
+    warning("Cannot plot figure. Error msg: '%s'" % e)
 
 try:
-  plt.show()
+    plt.show()
 except Exception as e:
-  warning("Cannot show figure. Error msg: '%s'" % e)
+    warning("Cannot show figure. Error msg: '%s'" % e)

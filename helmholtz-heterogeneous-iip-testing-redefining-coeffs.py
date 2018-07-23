@@ -35,10 +35,10 @@ g=1j*k*exp(1j*k*dot(x,d))*(dot(d,nu)-1)
 # Define coefficients
 
 def heaviside(x): # x here is a single coordinate of a SpatialCoordinate
-  return 0.5 * (sign(real(x)) + 1.0)
+    return 0.5 * (sign(real(x)) + 1.0)
 
 def Iab(x,a,b) : # indicator function on [a,b] - x is a single coordinate of a spatial coordinate, 0.0  <= a < b <= 1 are doubles
-  return heaviside(x-a) - heaviside(x-b)
+    return heaviside(x-a) - heaviside(x-b)
 
 n = 1.0 # background
 
@@ -51,8 +51,8 @@ n_values_constant = Constant(n_values,domain=mesh)
 
 # For each `piece', perturb n by the correct value on that piece
 for xii in range(0,coeff_pieces):
-  for yii in range(0,coeff_pieces):
-    n += n_values_constant[xii,yii] * Iab(x[0],xii/coeff_pieces,(xii+1)/coeff_pieces) * Iab(x[1],yii/coeff_pieces,(yii+1)/coeff_pieces)
+    for yii in range(0,coeff_pieces):
+        n += n_values_constant[xii,yii] * Iab(x[0],xii/coeff_pieces,(xii+1)/coeff_pieces) * Iab(x[1],yii/coeff_pieces,(yii+1)/coeff_pieces)
     
 # Plot n
 
@@ -115,19 +115,19 @@ solve(a == L, u_h, solver_parameters={'ksp_type': 'gmres', 'pc_type': 'lu'})
 
 # Plot the image
 try:
-  import matplotlib.pyplot as plt
+    import matplotlib.pyplot as plt
 except:
-  warning("Matplotlib not imported")
+    warning("Matplotlib not imported")
 
 try:
-  plot(u_h,num_sample_points=1)
+    plot(u_h,num_sample_points=1)
 except Exception as e:
-  warning("Cannot plot figure. Error msg: '%s'" % e)
+    warning("Cannot plot figure. Error msg: '%s'" % e)
 
 try:
-  plt.show()
+    plt.show()
 except Exception as e:
-  warning("Cannot show figure. Error msg: '%s'" % e)
+    warning("Cannot show figure. Error msg: '%s'" % e)
 
 # Now do it with a different n
 
@@ -138,8 +138,8 @@ n_values_constant.assign(n_values)
 
 # For each `piece', perturb n by the correct value on that piece
 for xii in range(0,coeff_pieces):
-  for yii in range(0,coeff_pieces):
-    n += n_values_constant[xii,yii] * Iab(x[0],xii/coeff_pieces,(xii+1)/coeff_pieces) * Iab(x[1],yii/coeff_pieces,(yii+1)/coeff_pieces)
+    for yii in range(0,coeff_pieces):
+        n += n_values_constant[xii,yii] * Iab(x[0],xii/coeff_pieces,(xii+1)/coeff_pieces) * Iab(x[1],yii/coeff_pieces,(yii+1)/coeff_pieces)
 
 # Plot n
 
@@ -164,16 +164,16 @@ solve(a == L, u_h, solver_parameters={'ksp_type': 'gmres', 'pc_type': 'lu'})
 
 # Plot the image
 try:
-  import matplotlib.pyplot as plt
+    import matplotlib.pyplot as plt
 except:
-  warning("Matplotlib not imported")
+    warning("Matplotlib not imported")
 
 try:
-  plot(u_h,num_sample_points=1)
+    plot(u_h,num_sample_points=1)
 except Exception as e:
-  warning("Cannot plot figure. Error msg: '%s'" % e)
+    warning("Cannot plot figure. Error msg: '%s'" % e)
 
 try:
-  plt.show()
+    plt.show()
 except Exception as e:
-  warning("Cannot show figure. Error msg: '%s'" % e)
+    warning("Cannot show figure. Error msg: '%s'" % e)

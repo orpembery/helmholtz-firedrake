@@ -132,18 +132,18 @@ File("helmholtz.pvd").write(u_h)
 
 # Plot the image
 try:
-  import matplotlib.pyplot as plt
+    import matplotlib.pyplot as plt
 except:
-  warning("Matplotlib not imported")
+    warning("Matplotlib not imported")
 
 try:
-  plot(u_h)
+    plot(u_h)
 except Exception as e:
-  warning("Cannot plot figure. Error msg: '%s'" % e)
+    warning("Cannot plot figure. Error msg: '%s'" % e)
 
 try:
-  plt.show()
+    plt.show()
 except Exception as e:
-  warning("Cannot show figure. Error msg: '%s'" % e)
+    warning("Cannot show figure. Error msg: '%s'" % e)
 
 # Note: In the PETSc documentation it seems there are two equivalent syntaxes: commands such as KSPgetOperators and PCgetOperators. I'm unclear on what the difference is between them. In the Firedrake tutorial on interfacing with PETSc (https://www.firedrakeproject.org/petsc-interface.html), the PCgetOperators syntax is used.

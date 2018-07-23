@@ -89,16 +89,16 @@ File("helmholtz.pvd").write(u_h)
 
 # Plot the image
 try:
-  import matplotlib.pyplot as plt
+    import matplotlib.pyplot as plt
 except:
-  warning("Matplotlib not imported")
+    warning("Matplotlib not imported")
 
 try:
-  plot(u_h)
+    plot(u_h)
 except Exception as e:
-  warning("Cannot plot figure. Error msg: '%s'" % e)
+    warning("Cannot plot figure. Error msg: '%s'" % e)
 
 try:
-  plt.show()
+    plt.show()
 except Exception as e:
-  warning("Cannot show figure. Error msg: '%s'" % e)
+    warning("Cannot show figure. Error msg: '%s'" % e)

@@ -7,4 +7,5 @@ Write as function
 Finish different cases
 Fix warnings
 Change mesh_size to make it work in 3-d
-
+Fix `directory' must have been created
+IMplement - only saves if successful

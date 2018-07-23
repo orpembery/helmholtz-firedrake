@@ -21,24 +21,24 @@ noise_level_n_base_range = [0.1]
 
 mesh_condition = 1.5 # h ~ k**mesh_condition) - real
 
-coeff_pieces = 20 # Number of `pieces' the piecewise constant coefficient has in each direction - int
+coeff_pieces = 13 # Number of `pieces' the piecewise constant coefficient has in each direction - int - breaks above ~14
 
 n_background = 'constant' # The background with respect to which we precondition. Options are 'constant', 'bad', or 'good', which correspond to the background being 1.0, n jumping down, n jumping up
 #FILL IN MORE DETAIL HERE WHEN IT'S DONE
 
-#noise_level_n = 0.1 # The size of the noise in n, i.e. ||n-n_0||_{L^\infty} = noise_level_n, when we don't scale with k
-
 A_background = 'constant' # COMMENT THIS LIKE FOR n, BUT I THINK THE JUMPS WILL GO THE OTHER WAY
 
-#noise_level_A = 0.00 # As for noise_level_n, but for A
+noise_level_A = 0.01 # As for noise_level_n, but for A
 
-num_repeats = 100 # number of repeats to do
+num_repeats = 1 # number of repeats to do
+
+data_save_directory = 'testing' # name of subdirectory of 'output' in which to save the files. No '/' in name, must have been created first
 
 ### The user does not need to change anything below this point ###
 
 def test_helmholtz_nearby_precon(k,mesh_condition,coeff_pieces,n_background,noise_level_n,A_background,noise_level_A,num_repeats):
 
-    print('Running with k = ' + str(k) + ' and noise_level_n = ' + str(noise_level_n))
+    print('Running with k = ' + str(k) + ' and noise_level_n = ' + str(noise_level_n) + ' and noise_level_A = ' + str(noise_level_A))
 
     # Define mesh size to eliminate pollution effect
     mesh_size = np.ceil(k**(mesh_condition)/np.sqrt(2.0)) # dividing by sqrt(2.0) because firedrake interprets the mesh size (in UnitSquareMesh as the number of cells in the x and y directions, whereas we want k**msh_condition to be the diameter of the cell
@@ -83,27 +83,19 @@ def test_helmholtz_nearby_precon(k,mesh_condition,coeff_pieces,n_background,nois
 
 
     if noise_level_n != 0.0:
-
-
-
-
         def n_noise(noise_level_n,coeff_pieces):
             n_values =  noise_level_n * (2.0 * np.random.random_sample([coeff_pieces,coeff_pieces]) - 1.0) # Uniform (-1,1) random variates
             # confusingly, going along rows of n_values corresponds to increasing y, and going down rows corresponds to increasing x
             return n_values
-
-        def ij(x,coeff_pieces): # x is Firedrake coord
-            return (np.floor(coeff_pieces * x.evaluate()),floor(coeff_pieces * x.evaluate()))
-    
-        n_values = Constant(n_noise(noise_level_n,coeff_pieces),domain=mesh)
-        n = n_values[ij(x,coeff_pieces)]
   
-#    n_values_constant = Constant(n_noise(noise_level_n,coeff_pieces),domain=mesh)
 
-    # For each `piece', perturb n by the correct value on that piece
-#    for xii in range(0,coeff_pieces):
-#      for yii in range(0,coeff_pieces):
-#        n += n_values_constant[xii,yii] * Iab(x[0],xii/coeff_pieces,(xii+1)/coeff_pieces) * Iab(x[1],yii/coeff_pieces,(yii+1)/coeff_pieces)
+  
+        n_values_constant = Constant(n_noise(noise_level_n,coeff_pieces),domain=mesh)
+
+        # For each `piece', perturb n by the correct value on that piece
+        for xii in range(0,coeff_pieces):
+            for yii in range(0,coeff_pieces):
+                n += n_values_constant[xii,yii] * Iab(x[0],xii/coeff_pieces,(xii+1)/coeff_pieces) * Iab(x[1],yii/coeff_pieces,(yii+1)/coeff_pieces)
 
     if A_background == 'constant':
         A_pre =  as_matrix([[1.0,0.0],[0.0,1.0]])
@@ -114,36 +106,35 @@ def test_helmholtz_nearby_precon(k,mesh_condition,coeff_pieces,n_background,nois
     A = A_pre
 
     if noise_level_A != 0.0:
-        warn('Currently I''ve only implemented variable n. Therefore using constant A = identity')
-  #  def A_noise(noise_level_A,coeff_pieces): # Generates a list of the values of A on the different subdomains
-  #      # Will symmetrise a 2x2 matrix
-  #      def symmetrise(A):
-  #          A_lower = np.tril(A,k=-1)
-  #          return np.diagflat(np.diagonal(A).copy()) + A_lower + np.transpose(A_lower)
+        def A_noise(noise_level_A,coeff_pieces): # Generates a list of the values of A on the different subdomains
+            # Will 'symmetrise' a 2x2 matrix
+            def symmetrise(A):
+                A_lower = np.tril(A,k=-1)
+                return np.diagflat(np.diagonal(A).copy()) + A_lower + np.transpose(A_lower)
+ 
+            A_values = noise_level_A * (2.0 * np.random.random_sample([coeff_pieces**2,2,2]) - 1.0) # Uniform (-1,1) random variates
 
-  #      A_values = noise_level_A * (2.0 * np.random.random_sample([coeff_pieces**2,2,2]) - 1.0) # Uniform (-1,1) random variates
+            A_values_list = list(A_values)
+            # We want each 2x2 `piece' of A_values to be an entry in a list, so that we can then turn each of them into a Firedrake `Constant` (I hope that this will mean Firedrake passes them as arguments to the C kernel, as documented on the `Constant` documentation page
 
-  #      A_values_list = list(A_values)
-        # We want each 2x2 `piece' of A_values to be an entry in a list, so that we can then turn each of them into a Firedrake `Constant` (I hope that this will mean Firedrake passes them as arguments to the C kernel, as documented on the `Constant` documentation page
-
-        # Symmetrise all the matrices
-  #      A_values_list = [symmetrise(A_dummy) for A_dummy in A_values_list]
+            # Symmetrise all the matrices
+            A_values_list = [symmetrise(A_dummy) for A_dummy in A_values_list]
 
 
-  #      return A_values_list
+            return A_values_list
 
-  #  A_values_list = A_noise(noise_level_A,coeff_pieces)
+        A_values_list = A_noise(noise_level_A,coeff_pieces)
 
-  #  A_values_constant_list = [Constant(A_dummy,domain=mesh) for A_dummy in A_values_list]
+        A_values_constant_list = [Constant(A_dummy,domain=mesh) for A_dummy in A_values_list]
 
-    # This extracts the relevant element of the list, given a 2-d index
-  #  def list_extract(values_list,x_coord,y_coord,coord_length): # The list should contain coord_length**2 elements
-  #    return values_list[x_coord + y_coord * coord_length]
+        # This extracts the relevant element of the list, given a 2-d index
+        def list_extract(values_list,x_coord,y_coord,coord_length): # The list should contain coord_length**2 elements
+            return values_list[x_coord + y_coord * coord_length]
 
-    # Form A by looping over all the subdomains
-  #  for xii in range(0,coeff_pieces-1):
-  #    for yii in range(0,coeff_pieces-1):
-  #      A += list_extract(A_values_constant_list,xii,yii,coeff_pieces) * Iab(x[0],xii/coeff_pieces,(xii+1)/coeff_pieces) * Iab(x[1],yii/coeff_pieces,(yii+1)/coeff_pieces)
+        # Form A by looping over all the subdomains
+        for xii in range(0,coeff_pieces-1):
+            for yii in range(0,coeff_pieces-1):
+                A += list_extract(A_values_constant_list,xii,yii,coeff_pieces) * Iab(x[0],xii/coeff_pieces,(xii+1)/coeff_pieces) * Iab(x[1],yii/coeff_pieces,(yii+1)/coeff_pieces)
 
 
     # Define sesquilinear form and antilinear functional for real problem
@@ -179,7 +170,7 @@ def test_helmholtz_nearby_precon(k,mesh_condition,coeff_pieces,n_background,nois
     date_time = date_time.utcnow().isoformat()
   
     # Write CSV
-    with open('nearby-preconditioning-test-output-' + date_time + '.csv', 'w', newline = '') as csvfile: # from https://docs.python.org/3.5/library/csv.html
+    with open('output/' + data_save_directory + '/nearby-preconditioning-test-output-' + date_time + '.csv', 'w', newline = '') as csvfile: # from https://docs.python.org/3.5/library/csv.html
         file_writer = csv.writer(csvfile, delimiter = ',', quoting = csv.QUOTE_MINIMAL)
         file_writer.writerow(['Git hash', git_hash_string])
         file_writer.writerow(['Date/Time', date_time]) # Current time in UTC as an ISO string
@@ -203,8 +194,8 @@ def test_helmholtz_nearby_precon(k,mesh_condition,coeff_pieces,n_background,nois
             if noise_level_n != 0.0:
                 n_values_constant.assign(n_noise(noise_level_n,coeff_pieces))
 
-        #if noise_level_A != 0.0:
-          #[A_dummy.assign(A_noise(noise_level_A,1)[0]) for A_dummy in A_values_constant_list] # All this does is generate correctly normalised realisation of symmetric 2x2 matrices one at a time, and replaces the values of the constants with these generated matrices
+            if noise_level_A != 0.0:
+                [A_dummy.assign(A_noise(noise_level_A,1)[0]) for A_dummy in A_values_constant_list] # All this does is generate correctly normalised realisation of symmetric 2x2 matrices one at a time, and replaces the values of the constants with these generated matrices
 
     return 'Test Completed'
 

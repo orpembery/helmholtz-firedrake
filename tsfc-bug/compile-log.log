@@ -1,0 +1,3 @@
+Compilation command:
+mpicc -std=c99 -fPIC -Wall -march=native -O3 -ffast-math -I/home/owen/progs/firedrake-complex/firedrake/lib/python3.5/site-packages/petsc/include -I/home/owen/progs/firedrake-complex/firedrake/src/PyOP2/pyop2 -msse -o /home/owen/progs/firedrake-complex/firedrake/.cache/pyop2/625ebc7a6a95e01f63eb28fe45fc01c3_p31518.so.tmp /home/owen/progs/firedrake-complex/firedrake/.cache/pyop2/625ebc7a6a95e01f63eb28fe45fc01c3_p31518.c -shared -L/home/owen/progs/firedrake-complex/firedrake/lib/python3.5/site-packages/petsc/lib -Wl,-rpath,/home/owen/progs/firedrake-complex/firedrake/lib/python3.5/site-packages/petsc/lib -lpetsc -lm
+

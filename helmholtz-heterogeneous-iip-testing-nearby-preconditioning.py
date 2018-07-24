@@ -11,7 +11,7 @@ import csv
 
 ### User-changeable parameters ###
 
-k_range = [10,20,30,40,50,60]
+k_range = [10,20,30,40,50]
 
 #noise_level_n_base_range = [0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]
 
@@ -34,7 +34,7 @@ A_background = 'constant' # COMMENT THIS LIKE FOR n, BUT I THINK THE JUMPS WILL 
 
 noise_level_A = 0.01 # As for noise_level_n, but for A
 
-num_repeats = 1 # number of repeats to do
+num_repeats = 100 # number of repeats to do
 
 data_save_directory = 'initial-variable-A-test' # name of subdirectory of 'output' in which to save the files. No '/' in name, must have been created first
 

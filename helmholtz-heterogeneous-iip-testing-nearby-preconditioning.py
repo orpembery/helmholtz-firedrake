@@ -218,12 +218,12 @@ for k in k_range:
 
                # test_helmholtz_nearby_precon(k,mesh_condition,coeff_pieces,n_background,noise_level_n_base / k,A_background,noise_level_A,num_repeats)
 
-                test_helmholtz_nearby_precon(k,mesh_condition,coeff_pieces,n_background,noise_level_n,A_background,noise_level_A_base,num_repeats)
+                test_helmholtz_nearby_precon(k,mesh_condition,coeff_pieces,n_background,noise_level_n_base,A_background,noise_level_A_base,num_repeats)
 
-                test_helmholtz_nearby_precon(k,mesh_condition,coeff_pieces,n_background,noise_level_n,A_background,noise_level_A_base / k,num_repeats)
+                test_helmholtz_nearby_precon(k,mesh_condition,coeff_pieces,n_background,noise_level_n_base,A_background,noise_level_A_base / k,num_repeats)
 
                 mesh_size = np.ceil(k**(-mesh_condition))
                 
-                test_helmholtz_nearby_precon(k,mesh_condition,coeff_pieces,n_background,noise_level_n,A_background,noise_level_A_base * k * (mesh_size**2),num_repeats)
+                test_helmholtz_nearby_precon(k,mesh_condition,coeff_pieces,n_background,noise_level_n_base,A_background,noise_level_A_base * k * (mesh_size**2),num_repeats)
 
                 # Test with noise in A going like 1, k^{-1}, kh^2, for both mesh conditions

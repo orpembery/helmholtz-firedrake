@@ -222,7 +222,7 @@ for k in k_range:
 
                 test_helmholtz_nearby_precon(k,mesh_condition,coeff_pieces,n_background,noise_level_n,A_background,noise_level_A_base / k,num_repeats)
 
-                 mesh_size = np.ceil(k**(-mesh_condition))
+                mesh_size = np.ceil(k**(-mesh_condition))
                 
                 test_helmholtz_nearby_precon(k,mesh_condition,coeff_pieces,n_background,noise_level_n,A_background,noise_level_A_base * k * (mesh_size**2),num_repeats)
 

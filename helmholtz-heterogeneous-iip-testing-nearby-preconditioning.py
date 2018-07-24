@@ -11,15 +11,19 @@ import csv
 
 ### User-changeable parameters ###
 
-#k_range = [10,20,30,40,50,60]
+k_range = [10,20,30,40,50,60]
 
 #noise_level_n_base_range = [0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]
 
-k_range = [10]
+#k_range = [10]
 
-noise_level_n_base_range = [0.1]
+noise_level_n_base_range = [0.0]
 
-mesh_condition = 1.5 # h ~ k**mesh_condition) - real
+noise_level_A_base_range = [0.1,0.2,0.3,0.4,0.5]
+
+#mesh_condition = 1.5 # h ~ k**mesh_condition) - real
+
+mesh_condition_range = [1.5,2.0]
 
 coeff_pieces = 13 # Number of `pieces' the piecewise constant coefficient has in each direction - int - breaks above ~14
 
@@ -41,10 +45,10 @@ def test_helmholtz_nearby_precon(k,mesh_condition,coeff_pieces,n_background,nois
     print('Running with k = ' + str(k) + ' and noise_level_n = ' + str(noise_level_n) + ' and noise_level_A = ' + str(noise_level_A))
 
     # Define mesh size to eliminate pollution effect
-    mesh_size = np.ceil(k**(mesh_condition)/np.sqrt(2.0)) # dividing by sqrt(2.0) because firedrake interprets the mesh size (in UnitSquareMesh as the number of cells in the x and y directions, whereas we want k**msh_condition to be the diameter of the cell
+    num_mesh_cells = np.ceil(k**(mesh_condition) * np.sqrt(2.0)) # multiplying by sqrt(2.0) because firedrake interprets the mesh size (in UnitSquareMesh as the number of cells in the x and y directions, whereas we want k**msh_condition to be the diameter of the cell
 
     # Create a mesh
-    mesh = UnitSquareMesh(mesh_size, mesh_size)
+    mesh = UnitSquareMesh(num_mesh_cells, num_mesh_cells)
 
     # Define function space for functions - continuous piecewise linear
     V = FunctionSpace(mesh, "CG", 1)
@@ -201,10 +205,25 @@ def test_helmholtz_nearby_precon(k,mesh_condition,coeff_pieces,n_background,nois
 
 for k in k_range:
 
-    for noise_level_n_base in noise_level_n_base_range:
+    for mesh_condition in mesh_condition_range:
+    
+        for noise_level_n_base in noise_level_n_base_range:
 
-        test_helmholtz_nearby_precon(k,mesh_condition,coeff_pieces,n_background,noise_level_n_base,A_background,noise_level_A,num_repeats)
+            for noise_level_A_base in noise_level_A_base_range:
 
-        test_helmholtz_nearby_precon(k,mesh_condition,coeff_pieces,n_background,noise_level_n_base / (k**0.5),A_background,noise_level_A,num_repeats)
+                # Commented out tests for different n
+               # test_helmholtz_nearby_precon(k,mesh_condition,coeff_pieces,n_background,noise_level_n_base,A_background,noise_level_A,num_repeats)
 
-        test_helmholtz_nearby_precon(k,mesh_condition,coeff_pieces,n_background,noise_level_n_base / k,A_background,noise_level_A,num_repeats)
+               # test_helmholtz_nearby_precon(k,mesh_condition,coeff_pieces,n_background,noise_level_n_base / (k**0.5),A_background,noise_level_A,num_repeats)
+
+               # test_helmholtz_nearby_precon(k,mesh_condition,coeff_pieces,n_background,noise_level_n_base / k,A_background,noise_level_A,num_repeats)
+
+                test_helmholtz_nearby_precon(k,mesh_condition,coeff_pieces,n_background,noise_level_n,A_background,noise_level_A_base,num_repeats)
+
+                test_helmholtz_nearby_precon(k,mesh_condition,coeff_pieces,n_background,noise_level_n,A_background,noise_level_A_base / k,num_repeats)
+
+                 mesh_size = np.ceil(k**(-mesh_condition))
+                
+                test_helmholtz_nearby_precon(k,mesh_condition,coeff_pieces,n_background,noise_level_n,A_background,noise_level_A_base * k * (mesh_size**2),num_repeats)
+
+                # Test with noise in A going like 1, k^{-1}, kh^2, for both mesh conditions

@@ -36,7 +36,7 @@ noise_level_A = 0.01 # As for noise_level_n, but for A
 
 num_repeats = 1 # number of repeats to do
 
-data_save_directory = 'testing' # name of subdirectory of 'output' in which to save the files. No '/' in name, must have been created first
+data_save_directory = 'initial-variable-A-test' # name of subdirectory of 'output' in which to save the files. No '/' in name, must have been created first
 
 ### The user does not need to change anything below this point ###
 

@@ -1,35 +1,37 @@
 import firedrake as fd
+import numpy as np
 
 class HelmholtzProblem:
     """Defines a finite-element approximation of a Helmholtz problem.
 
     Defines a finite-element approximation of the Helmholtz equation with heterogeneous coefficients, gives the ability to define a preconditioner, and provides the methods to solve the approximation (using GMRES) and analyse the converence a little.
+
+    Atttributes:
+
+    mesh - a mesh object created by fd.Mesh (or one of Firedrake's utitlity mesh functions)
+
+    V - a FunctionSpace defined on mesh
+
+    k - a positive float
+
+    A - A (function that generates a?) UFL expression for the 'diffusion coefficient'. Output should be a spatially heterogeneous symmetric 2x2 matrix
+
+    n - A (function that generates a?) UFL expression for the 'squared slowness'. Output should be a spatially heterogeneous real
+
+    f - A UFL expression for the right-hand side of the Helmholtz PDE
+
+    g - Either a UFL expression for the right-hand side of an impedance boundary condition (if boundary_condition_type = "Impedance") or None
+    Syntax for A, n, f, and g: x = fd.SpatialCoordinate(mesh), nu = FacetNormal(mesh)
+        
+    aP - Either an instance of HelmholtzProblem with the same mesh, V, and boundary_condition_type; or None.
+
+    u_h - a Firedrake Function holding the numerical solution of the PDE (equals the zero function if solve() has not been called)
+
+    GMRES_its - int holding the number of GMRES iterations it took for the solver to converge (equals None if solve() has not been called)
     """
 
     def __init__(self, mesh, V, k, A, n, f, g, boundary_condition_type="Impedance", aP=None):
         """Creates an instance of HelmholtzProblem.
-
-        mesh - a mesh object created by fd.Mesh (or one of Firedrake's utitlity mesh functions)
-
-        V - a FunctionSpace defined on mesh
-
-        k - a positive float
-
-        A - A (function that generates a?) UFL expression for the 'diffusion coefficient'. Output should be a spatially heterogeneous symmetric 2x2 matrix
-
-        n - A (function that generates a?) UFL expression for the 'squared slowness'. Output should be a spatially heterogeneous real
-
-        boundary_condition_type - whether to use an Impedance boundary condition, or another type. (Currently only Impedance boundary conditions are supported.)
-
-        f - A UFL expression for the right-hand side of the Helmholtz PDE
-
-        g - Either a UFL expression for the right-hand side of an impedance boundary condition (if boundary_condition_type = "Impedance") or None
-
-        Syntax for A, n, f, and g: x = fd.SpatialCoordinate(mesh), nu = FacetNormal(mesh)
-        
-        aP - Either an instance of HelmholtzProblem with the same mesh, V, and boundary_condition_type; or None.
-
-        Attributes:
 
         mesh - as above
 
@@ -45,11 +47,9 @@ class HelmholtzProblem:
 
         g - as above
 
+        boundary_condition_type - whether to use an Impedance boundary condition, or another type. (Currently only Impedance boundary conditions are supported.)
+
         aP - as above
-
-        u_h - a Firedrake Function holding the numerical solution of the PDE (equals the zero function if solve() has not been called)
-
-        GMRES_its - int holding the number of GMRES iterations it took for the solver to converge (equals None if solve() has not been called)
         """
 
         if not(isinstance(mesh,fd.mesh.MeshGeometry)):
@@ -147,7 +147,82 @@ class HelmholtzProblem:
         self.solver.solve()
 
         self.GMRES_its = self.solver.snes.ksp.getIterationNumber()
-    
+
+class StochasticHelmholtzProblem(HelmholtzProblem):
+    """Defines a stochastic Helmholtz finite-element problem.
+
+    All attributes are identical to HelmholtzProblem, except for the following new attributes:
+
+    - A_gen - a function (with no input arguments) that returns a random realisation of the type given by A in HelmholtzProblem. Must be implemented using Numpy.
+
+    - n_gen - a function (with no input arguments) that returns a random realisation of the type given by n in HelmholtzProblem. Must be implemented using Numpy.
+
+    - seed - int - the random seed used in the random generators underpinning A and n.
+
+    Note: The attributes A and n are now realisations of the random fields given by A and n.
+    """
+
+    def __init__(self, mesh, V, k, A_gen, n_gen, f, g, seed=1, boundary_condition_type="Impedance", aP=None):
+        """Creates an instance of StochasticHelmholtzProblem.
+
+        mesh - as in HelmholtzProblem
+
+        V - as in HelmholtzProblem
+
+        k - as in HelmholtzProblem
+
+        A_gen - as above
+
+        n_gen - as above
+
+        f - as in HelmholtzProblem
+
+        g - as in HelmholtzProblem
+
+        seed - as above
+
+        boundary_condition_type - as in HelmholtzProblem
+
+        aP - as in HelmholtzProblem
+        """
+        
+        if not(isinstance(seed,int)):
+            raise UserInputError("Input 'seed' must be an int.")
+        elif not(callable(A_gen)): # Information gained from https://stackoverflow.com/questions/624926/how-do-i-detect-whether-a-python-variable-is-a-function
+            raise UserInputError("Input 'A_gen' must be a function.")
+        elif not(callable(n_gen)):
+            raise UserInputError("Input 'A_gen' must be a function.")
+        
+        self.seed = seed
+
+        self.A_gen = A_gen
+
+        self.n_gen = n_gen
+        
+        np.random.seed(self.seed)
+        
+        A = self.A_gen()
+
+        n = self.n_gen()
+
+        super().__init__(mesh, V, k, A, n, f, g, boundary_condition_type="Impedance", aP=None)
+
+    def resample_coefficients(self):
+        """Replaces the coefficients A and n with a new sample drawn from A_gen and n_gen."""
+
+        self.A = self.A_gen()
+
+        self.n = self.n_gen()
+
+    def reset_seed(self,new_seed=1):
+        """Resets the random seed."""
+
+        self.seed = new_seed
+
+        np.random.seed(self.seed)
+
+
+            
 class UserInputError(Exception):
     """Error raised when the user fails to supply correct inputs.
     

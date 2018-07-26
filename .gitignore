@@ -2,3 +2,4 @@
 *.pvd
 /output/testing
 __pycache__
+*~

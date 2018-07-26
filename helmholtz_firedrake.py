@@ -58,7 +58,7 @@ class HelmholtzProblem:
         elif not(isinstance(V,fd.functionspaceimpl.WithGeometry)):
             raise UserInputError("Input argument 'V' is not a Firedrake FunctionSpace.")
 
-        elif V.mesh() != mesh:
+        elif V.mesh() is not mesh:
             raise UserInputError("Function space 'V' is not defined on 'mesh'.")
 
         elif not(isinstance(k,float)):
@@ -73,15 +73,15 @@ class HelmholtzProblem:
         elif boundary_condition_type == "Impedance" and g == None:
             raise UserInputError("Impedance boundary data g must be defined.")
 
-        elif aP != None:
+        elif aP is not None:
 
             if not(isinstance(aP,HelmholtzProblem)):
                 raise UserInputError("Input argument aP must be an instance of HelmholtzProblem.")
 
-            elif aP.mesh != mesh:
+            elif aP.mesh is not mesh:
                 raise UserInputError("Preconditioner aP must be defined on the mesh 'mesh'.")
 
-            elif aP.V != V:
+            elif aP.V is not V:
                 raise UserInputError("Preconditioner aP must be define the Function Space 'V'.")
 
 
@@ -230,10 +230,20 @@ class StochasticHelmholtzProblem(HelmholtzProblem):
 
         np.random.seed(self.seed)
 
-
             
 class UserInputError(Exception):
     """Error raised when the user fails to supply correct inputs.
+    
+    Attributes:
+        message - Error message explaining the error.
+    """
+
+    def __init__(self,message):
+
+        self.message = message
+
+class HelmholtzNotImplementedError(Exception):
+    """Error raised when a given feature isn't implemented in helmholtz_firedrake yet.
     
     Attributes:
         message - Error message explaining the error.

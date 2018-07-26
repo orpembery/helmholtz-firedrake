@@ -188,9 +188,9 @@ class StochasticHelmholtzProblem(HelmholtzProblem):
         
         if not(isinstance(seed,int)):
             raise UserInputError("Input 'seed' must be an int.")
-        elif not(callable(A_gen)): # Information gained from https://stackoverflow.com/questions/624926/how-do-i-detect-whether-a-python-variable-is-a-function
+        elif not(isinstance(A_gen,collections.Callable): # See https://bugs.python.org/issue10518
             raise UserInputError("Input 'A_gen' must be a function.")
-        elif not(callable(n_gen)):
+        elif not(isinstance(n_gen,collections.Callable)):
             raise UserInputError("Input 'A_gen' must be a function.")
         
         self.seed = seed

@@ -61,7 +61,7 @@ for master_noise_level in [0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]:
     for power_of_k_index in [1,2,3]:
         
         # extract the results
-        relevant_columns = results[power_of_k_index,:] == master_noise_level
+        relevant_columns = abs(results[power_of_k_index,:] - master_noise_level) <= 1e-10
         to_plot_columns = results[:,relevant_columns]
         #print(to_plot_columns[:,0])
         # put all the columns of GMRES iterations in one LONG column

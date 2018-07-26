@@ -146,7 +146,13 @@ class HelmholtzProblem:
 
         self.solver.solve()
 
+        assert isinstance(self.u_h,fd.function.Function)
+
+        assert isinstance(self.solver.snes.ksp.getIterationNumber(),int)
+        
         self.GMRES_its = self.solver.snes.ksp.getIterationNumber()
+
+
 
 class StochasticHelmholtzProblem(HelmholtzProblem):
     """Defines a stochastic Helmholtz finite-element problem.
@@ -188,7 +194,7 @@ class StochasticHelmholtzProblem(HelmholtzProblem):
         
         if not(isinstance(seed,int)):
             raise UserInputError("Input 'seed' must be an int.")
-        elif not(isinstance(A_gen,collections.Callable): # See https://bugs.python.org/issue10518
+        elif not(isinstance(A_gen,collections.Callable)): # See https://bugs.python.org/issue10518
             raise UserInputError("Input 'A_gen' must be a function.")
         elif not(isinstance(n_gen,collections.Callable)):
             raise UserInputError("Input 'A_gen' must be a function.")
@@ -217,6 +223,9 @@ class StochasticHelmholtzProblem(HelmholtzProblem):
     def reset_seed(self,new_seed=1):
         """Resets the random seed."""
 
+        if not(isinstance(new_seed),int) or new_seed < 0 or 2**32 < new_seed:
+            UserInputError("Input argument 'new_seed' should be an integer between 0 and 2**32 - 1.")
+                           
         self.seed = new_seed
 
         np.random.seed(self.seed)

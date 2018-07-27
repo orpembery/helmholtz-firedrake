@@ -155,13 +155,23 @@ class StochasticHelmholtzProblem(HelmholtzProblem):
 
     All attributes are identical to HelmholtzProblem, except for the following new attributes:
 
-    - A_gen - a function (with no input arguments) that returns a random realisation of the type given by A in HelmholtzProblem. Must be implemented using Numpy.
+    - A_gen - a instance of a class with the following attributes/methods:
 
-    - n_gen - a function (with no input arguments) that returns a random realisation of the type given by n in HelmholtzProblem. Must be implemented using Numpy.
+        Attributes: A - a realisation of the type given by A in HelmholtzProblem. Must be implemented using Numpy.
+
+        Methods: resample_coeffs - randomly updates A
+
+        (This is specification is implementation-agnostic, but it's best to implement this using Firedrake Constants, as then the form doesn't need to be recompiled for each new realsiation.)
+
+    - n_gen - a instance of a class with the following attributes/methods:
+
+        Attributes: n - a realisation of the type given by n in HelmholtzProblem. Must be implemented using Numpy.
+
+        Methods: resample_coeffs - randomly updates n
+
+        (Same comment about implementation as for A_gen holds.)
 
     - seed - int - the random seed used in the random generators underpinning A and n.
-
-    Note: The attributes A and n are now realisations of the random fields given by A and n.
     """
 
     def __init__(self, mesh, V, k, A_gen, n_gen, f, g, seed=1, boundary_condition_type="Impedance", aP=None):
@@ -203,18 +213,14 @@ class StochasticHelmholtzProblem(HelmholtzProblem):
         
         np.random.seed(self.seed)
         
-        A = self.A_gen()
-
-        n = self.n_gen()
-
-        super().__init__(mesh, V, k, A, n, f, g, boundary_condition_type="Impedance", aP=None)
+        super().__init__(mesh, V, k, self.A_gen.A, self.n_gen.n, f, g, boundary_condition_type="Impedance", aP=None)
 
     def resample_coefficients(self):
         """Replaces the coefficients A and n with a new sample drawn from A_gen and n_gen."""
 
-        self.A = self.A_gen()
+        self.A_gen.resample_coeffs()
 
-        self.n = self.n_gen()
+        self.n_gen.resample_coeffs()
 
     def reset_seed(self,new_seed=1):
         """Resets the random seed."""
@@ -248,5 +254,3 @@ class HelmholtzNotImplementedError(Exception):
     def __init__(self,message):
 
         self.message = message
-
-    

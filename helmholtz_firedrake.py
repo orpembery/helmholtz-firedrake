@@ -112,10 +112,6 @@ class HelmholtzProblem:
         u = fd.TrialFunction(V)
         v = fd.TestFunction(V)
 
-        x = fd.SpatialCoordinate(mesh)
-
-        nu = fd.FacetNormal(mesh)
-
         # Define sesquilinear form and antilinear functional
         a = (fd.inner(A * fd.grad(u), fd.grad(v)) - k**2 * fd.inner(n * u,v)) * fd.dx - (1j* k * fd.inner(u,v)) * fd.ds
         L =  fd.inner(g,v)*fd.ds

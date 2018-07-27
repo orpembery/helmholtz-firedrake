@@ -1,28 +1,27 @@
 import firedrake as fd
 import numpy as np
 
-class HelmholtzProblem:
+class HelmholtzProblem(object):
     """Defines a finite-element approximation of a Helmholtz problem.
 
     Defines a finite-element approximation of the Helmholtz equation with heterogeneous coefficients, gives the ability to define a preconditioner, and provides the methods to solve the approximation (using GMRES) and analyse the converence a little.
 
     Atttributes:
 
-    mesh - a mesh object created by fd.Mesh (or one of Firedrake's utitlity mesh functions)
+    mesh - a mesh object created by fd.Mesh (or one of Firedrake's utility mesh functions)
 
     V - a FunctionSpace defined on mesh
 
     k - a positive float
 
-    A - A (function that generates a?) UFL expression for the 'diffusion coefficient'. Output should be a spatially heterogeneous symmetric 2x2 matrix
+    A - A UFL expression for the 'diffusion coefficient'. Output should be a spatially heterogeneous symmetric 2x2 matrix.
 
-    n - A (function that generates a?) UFL expression for the 'squared slowness'. Output should be a spatially heterogeneous real
+    n - A UFL expression for the 'squared slowness'. Output should be a spatially heterogeneous real.
 
-    f - A UFL expression for the right-hand side of the Helmholtz PDE
+    f - A UFL expression for the right-hand side of the Helmholtz PDE.
 
-    g - Either a UFL expression for the right-hand side of an impedance boundary condition (if boundary_condition_type = "Impedance") or None
-    Syntax for A, n, f, and g: x = fd.SpatialCoordinate(mesh), nu = FacetNormal(mesh)
-        
+    g - Either a UFL expression for the right-hand side of an impedance boundary condition (if boundary_condition_type = "Impedance") or None.
+       
     aP - Either an instance of HelmholtzProblem with the same mesh, V, and boundary_condition_type; or None.
 
     u_h - a Firedrake Function holding the numerical solution of the PDE (equals the zero function if solve() has not been called)
@@ -47,7 +46,7 @@ class HelmholtzProblem:
 
         g - as above
 
-        boundary_condition_type - whether to use an Impedance boundary condition, or another type. (Currently only Impedance boundary conditions are supported.)
+        boundary_condition_type - string - "Impedance". Dictates whether to use an Impedance boundary condition, or another type. (Currently only Impedance boundary conditions are supported.)
 
         aP - as above
         """

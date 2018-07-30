@@ -4,126 +4,139 @@ import numpy as np
 class HelmholtzProblem(object):
     """Defines a finite-element approximation of a Helmholtz problem.
 
-    Defines a finite-element approximation of the Helmholtz equation with heterogeneous coefficients, gives the ability to define a preconditioner, and provides the methods to solve the approximation (using GMRES) and analyse the converence a little.
+    Defines a finite-element approximation of the Helmholtz equation
+    with heterogeneous coefficients, gives the ability to define a
+    preconditioner, and provides the methods to solve the approximation
+    (using GMRES) and analyse the converence a little.
 
-    Atttributes:
+    Modifiying coefficients/forcing functions can be done one of two
+    ways:
 
-    mesh - a mesh object created by fd.Mesh (or one of Firedrake's utility mesh functions)
+    1) Using the 'set_' methods built into the class. This will cause
+    Firedrake to re-compile new C code, and therefore is slower.
 
-    V - a FunctionSpace defined on mesh
+    2) If the coefficients/forcing functions are partly defined using
+    Firedrake Constants, these Constants can be updated directly using
+    their assign() methods. This does not cause Firedrake to recompile,
+    and is faster.
 
-    k - a positive float
+    Do NOT modify the attributes directly to change the coefficients (as
+    when this happens, the problem must be re-initialised).  """
 
-    A - A UFL expression for the 'diffusion coefficient'. Output should be a spatially heterogeneous symmetric 2x2 matrix.
-
-    n - A UFL expression for the 'squared slowness'. Output should be a spatially heterogeneous real.
-
-    f - A UFL expression for the right-hand side of the Helmholtz PDE.
-
-    g - Either a UFL expression for the right-hand side of an impedance boundary condition (if boundary_condition_type = "Impedance") or None.
-       
-    aP - Either an instance of HelmholtzProblem with the same mesh, V, and boundary_condition_type; or None.
-
-    u_h - a Firedrake Function holding the numerical solution of the PDE (equals the zero function if solve() has not been called)
-
-    GMRES_its - int holding the number of GMRES iterations it took for the solver to converge (equals None if solve() has not been called)
-    """
-
-    def __init__(self, mesh, V, k, A, n, f, g, boundary_condition_type="Impedance", aP=None):
+    def __init__(self, k, V,
+                 A=fd.as_matrix([[1.0,0.0],[0.0,1.0]]),n=1.0,
+                 A_pre=None,n_pre=None,
+                 f=1.0,g=0.0):
         """Creates an instance of HelmholtzProblem.
 
-        mesh - as above
+        Arguments:
 
-        V - as above
+        k - a positive float
 
-        k - as above
+        V - a Firedrake FunctionSpace defined on a mesh
 
-        A - as above
+        A - A UFL (possibly containing Firedrake Constants) expression
+        for the 'diffusion coefficient'. Output should be a spatially
+        heterogeneous symmetric 2x2 matrix.
 
-        n - as above
+        n - A UFL expression (possibly containing Firedrake Constants)
+        for the 'squared slowness'. Output should be a spatially
+        heterogeneous real.
 
-        f - as above
+        A_pre - None, or a UFL expression (possibly containing Firedrake
+        Constants) for the 'diffusion coefficient' for the
+        preconditioning problem. Output should be a spatially
+        heterogeneous symmetric 2x2 matrix.
 
-        g - as above
+        n_pre - None, or a UFL expression (possibly containing Firedrake
+        Constants) for the 'squared slowness' for the preconditioning
+        problem. Output should be a spatially heterogeneous real.
 
-        boundary_condition_type - string - "Impedance". Dictates whether to use an Impedance boundary condition, or another type. (Currently only Impedance boundary conditions are supported.)
+        f - A UFL expression for the right-hand side of the Helmholtz
+        PDE.
 
-        aP - as above
+        g - A UFL expression for the right-hand side of the impedance
+        boundary condition.
+
+        
+        Attributes defined:
+
+        u_h - a Firedrake Function holding the numerical solution of the
+        PDE (equals the zero function if solve() has not been called). CHECK THIS
+
+        GMRES_its - int holding the number of GMRES iterations it took
+        for the solver to converge (equals None if solve() has not been
+        called).
+        """
+        self._set_initialised(False)
+        
+        self.set_k(k)
+
+        self.set_A(A)
+
+        self.set_n(n)
+
+        self.set_A_pre(A_pre)
+
+        self.set_n_pre(n_pre)
+
+        self.set_f(f)
+
+        self.set_g(g)
+
+        self.set_V(V)
+
+        self._set_GMRES_its()
+
+        self._initialise_u_h()
+
+    def solve(self):
+        """
+        Solves the Helmholtz Problem, and creates attributes of the
+        solution and the number of GMRES iterations. Warning - can take
+        a while!"""
+
+        if not(self._initialised):
+            self._initialise_problem()
+       
+        self._solver.solve()
+
+        assert isinstance(self.solver.snes.ksp.getIterationNumber(),int)
+        
+        self._set_GMRES_its(self.solver.snes.ksp.getIterationNumber())
+
+    def _initialise_problem(self):
+        """
+        Sets up all the TrialFunction, TestFunction etc. machinery
+        for solving the Helmholtz problem.
         """
 
-        if not(isinstance(mesh,fd.mesh.MeshGeometry)):
-            raise UserInputError("Input argument 'mesh' is not a Firedrake Mesh.")
-
-        elif not(isinstance(V,fd.functionspaceimpl.WithGeometry)):
-            raise UserInputError("Input argument 'V' is not a Firedrake FunctionSpace.")
-
-        elif V.mesh() is not mesh:
-            raise UserInputError("Function space 'V' is not defined on 'mesh'.")
-
-        elif not(isinstance(k,float)):
-            raise UserInputError("Wavenumber k should be a float.")
-
-        elif k <= 0:
-            raise UserInputError("Wavenumber k should be positive.")
-        
-        elif boundary_condition_type != "Impedance":
-            raise UserInputError("Only Impedance boundary conditions currently implemented.")
-
-        elif boundary_condition_type == "Impedance" and g == None:
-            raise UserInputError("Impedance boundary data g must be defined.")
-
-        elif aP is not None:
-
-            if not(isinstance(aP,HelmholtzProblem)):
-                raise UserInputError("Input argument aP must be an instance of HelmholtzProblem.")
-
-            elif aP.mesh is not mesh:
-                raise UserInputError("Preconditioner aP must be defined on the mesh 'mesh'.")
-
-            elif aP.V is not V:
-                raise UserInputError("Preconditioner aP must be define the Function Space 'V'.")
-
-
-        self.mesh = mesh
-
-        self.V = V
-
-        self.k = k
-        
-        self.A = A
-
-        self.n = n
-
-        self.f = f
-
-        self.g = g
-
-        self.aP = aP
-
-        # Define numerical solution
-        self.u_h = fd.Function(V)
-
-        self.GMRES_its = None
-        
-        # Set up finite-element problem
-        
         # Define trial and test functions on the space
-        u = fd.TrialFunction(V)
-        v = fd.TestFunction(V)
+        self._u = fd.TrialFunction(self._V)
+        self._v = fd.TestFunction(self._V)
 
         # Define sesquilinear form and antilinear functional
-        a = (fd.inner(A * fd.grad(u), fd.grad(v)) - k**2 * fd.inner(n * u,v)) * fd.dx - (1j* k * fd.inner(u,v)) * fd.ds
-        L =  fd.inner(g,v)*fd.ds
+        self._a = (fd.inner(self._A * fd.grad(self._u), fd.grad(self._v))\
+                   - self._k**2 * fd.inner(self._n * self._u,self._v)) * fd.dx\
+                   - (1j* self._k * fd.inner(self._u,self._v)) * fd.ds
+        self._L =  fd.inner(self._f,self._v)*fd.dx\
+                   + fd.inner(self._g,self._v)*fd.ds
 
-        # Define problem and solver (following code courtesy of Lawrence Mitchell, via Slack)
-        if aP == None:
+        # Define problem and solver (following code courtesy of Lawrence
+        # Mitchell, via Slack)
+        if self._A_pre == None and self._n_pre == None:
             a_pre = None
             solver_parameters={"ksp_type": "gmres",
                                "mat_type": "aij",
                                "ksp_norm_type": "unpreconditioned"
                                }
         else:
-            a_pre = (inner(aP.A * grad(u), grad(v)) - aP.k**2 * inner(aP.n * u,v)) * dx - (1j* aP.k * inner(u,v)) * ds
+            a_pre = (fd.inner(self._A_pre * fd.grad(self._u),\
+                              fd.grad(self._v))\
+                     - self._k**2 * fd.inner(self._n * self._u,self._v))\
+                     * fd.dx\
+                     - (1j* self.k * fd.inner(self._u,self._v)) * fd.ds
+                     
             solver_parameters={"ksp_type": "gmres",
                                "mat_type": "aij",
                                "pmat_type": "aij",
@@ -133,23 +146,125 @@ class HelmholtzProblem(object):
                                "ksp_norm_type": "unpreconditioned"
                                }
             
-        problem = fd.LinearVariationalProblem(a, L, self.u_h, aP=a_pre, constant_jacobian=False)
-        self.solver = fd.LinearVariationalSolver(problem, solver_parameter = solver_parameters)
-
-    def solve(self):
-        """Solves the Helmholtz Problem, and creates attributes of the solution and the number of GMRES iterations. Warning - can take a while!"""
-
-        self.solver.solve()
-
-        assert isinstance(self.u_h,fd.function.Function)
-
-        assert isinstance(self.solver.snes.ksp.getIterationNumber(),int)
+        problem = fd.LinearVariationalProblem(
+                      a, L, self.u_h, aP=a_pre, constant_jacobian=False)
         
-        self.GMRES_its = self.solver.snes.ksp.getIterationNumber()
+        self._solver = fd.LinearVariationalSolver(
+                           problem, solver_parameter = solver_parameters)
+
+        self._set_initialised(True)
+
+    def set_k(self,k):
+
+        """Sets the wavenumber k."""
+
+        self._k = k
+
+        if self._initialised:
+            self._initialise_problem()
+        
+    def set_A(self,A):
+        """Sets the 'diffusion coefficient' A."""
+
+        self._A = A
+
+        if self._initialised:
+            self._initialise_problem()
+        
+
+    def set_n(self,n):
+        """Sets the 'squared slowness' n."""
+
+        self._n = n
+
+        if self._initialised:
+            self._initialise_problem()
+            
+    def set_A_pre(self,A_pre):
+        """
+        Sets the 'diffusion coefficient' for the preconditioning
+        problem.
+        """
+
+        self._A_pre = A_pre
+
+        if self._initialised:
+            self._initialise_problem()
+
+    def set_n_pre(self,n_pre):
+        """
+        Sets the 'squared slowness' for the preconditioning problem.
+        """
+
+        self._n_pre = n_pre
+
+        if self._initialised:
+            self._initialise_problem()
+
+    def set_f(self,f):
+        """Sets the 'domain forcing function' f."""
+
+        self._f = f
+
+        if self._initialised:
+            self._initialise_problem()
+        
+    def set_g(self,g):
+        """Sets the 'impedance boundary forcing function' g."""
+
+        self._g = g
+
+        if self._initialised:
+            self._initialise_problem()
+
+    def _set_GMRES_its(self,GMRES_its=-1):
+        """
+        Sets the number of GMRES iterations needed to solve the
+        Helmholtz problem.
+        """
+        self.GMRES_its = GMRES_its
+
+    def _set_u_h(self,u_h):
+        """Sets the finite-element solution of the Helmholtz problem."""
+
+        self.u_h = u_h
+
+    def set_V(self,V):
+        """Sets the function space."""
+
+        self._V = V
 
 
+    def _set_initialised(self,TF):
+        """Says whether the Helmholtz Problem has been initialised."""
+        self._initialised = TF
+
+    def _initialise_u_h(self):
+        """Initialises the Function to hold the solution."""
+        self.u_h = fd.Function(self._V)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
 
 class StochasticHelmholtzProblem(HelmholtzProblem):
+
     """Defines a stochastic Helmholtz finite-element problem.
 
     All attributes are identical to HelmholtzProblem, except for the following new attributes:

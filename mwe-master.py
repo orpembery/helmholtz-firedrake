@@ -1,37 +1,105 @@
 from firedrake import *
 from matplotlib import pyplot as plt
+import helmholtz_firedrake as hh
+import numpy as np
 
-mesh = UnitSquareMesh(2,2)
+mesh = UnitSquareMesh(100,100)
+
+k = 10.0
 
 V = FunctionSpace(mesh,"CG",1)
 
-u = TrialFunction(V)
+f = 0.0
 
-v = TestFunction(V)
+g = 1.0
 
-x = SpatialCoordinate(mesh)
+class n_simple(object):
+    """KISS."""
 
-f = x[0]
+    def __init__(self):
+        self.n = Constant(1.0)
 
-a = inner(u,v)*dx
+    def sample(self):
+        self.n.assign(np.random.random_sample() + 0.5)
 
-L = inner(real(f),v)*dx
+class A_simple(object):
+    """KISS."""
 
-u_h = Function(V)
+    def __init__(self):
+        self.A = Constant(np.array([[1.0,0.0],[0.0,1.0]]))
 
-solve(a==L,u_h)
+    def sample(self):
+        self.A.assign(np.array([[1.0,0.0],[0.0,1.0]]))
 
-plot(u_h,num_sample_points=1)
+A_stoch = A_simple()
+
+n_stoch = n_simple()
+
+
+        
+sprob = hh.StochasticHelmholtzProblem(k,V,A_stoch,n_stoch)
+
+sprob.solve()
+
+plot(sprob.u_h)
 
 plt.show()
 
-f = x[1]
+sprob.sample()
 
-L = inner(real(f),v)*dx
+sprob.solve()
 
-solve(a==L,u_h)
-
-plot(u_h,num_sample_points=1)
+plot(sprob.u_h)
 
 plt.show()
+
+sprob.sample()
+
+if False:
+    prob = hh.HelmholtzProblem(k=k,V=V,n=n,f=f,g=g)
+
+    prob.solve()
+
+    plot(prob.u_h)
+
+    plt.show()
+
+    n.assign(2.0)
+
+    prob.solve()
+
+    plot(prob.u_h)
+
+    plt.show()
+
+    
+    u = TrialFunction(V)
+
+    v = TestFunction(V)
+
+    x = SpatialCoordinate(mesh)
+
+    f = x[0] - x[0]
+
+    a = inner(u,v)*dx
+
+    L = inner(real(f),v)*dx
+
+    u_h = Function(V)
+
+    solve(a==L,u_h)
+
+    plot(u_h,num_sample_points=1)
+
+    plt.show()
+
+    f = x[1]
+
+    L = inner(real(f),v)*dx
+
+    solve(a==L,u_h)
+
+    plot(u_h,num_sample_points=1)
+
+    plt.show()
 

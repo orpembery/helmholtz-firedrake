@@ -20,8 +20,9 @@ class HelmholtzProblem(object):
     their assign() methods. This does not cause Firedrake to recompile,
     and is faster.
 
-    Do NOT modify the attributes directly to change the coefficients (as
-    when this happens, the problem must be re-initialised).  """
+    Do NOT modify the attributes directly to change the coefficients
+    (when this happens, the problem must be re-initialised).
+    """
 
     def __init__(self, k, V,
                  A=fd.as_matrix([[1.0,0.0],[0.0,1.0]]),n=1.0,
@@ -62,10 +63,10 @@ class HelmholtzProblem(object):
         Attributes defined:
 
         u_h - a Firedrake Function holding the numerical solution of the
-        PDE (equals the zero function if solve() has not been called). CHECK THIS
+        PDE (equals the zero function if solve() has not been called).
 
         GMRES_its - int holding the number of GMRES iterations it took
-        for the solver to converge (equals None if solve() has not been
+        for the solver to converge (equals -1 if solve() has not been
         called).
         """
         self._set_initialised(False)
@@ -101,9 +102,9 @@ class HelmholtzProblem(object):
        
         self._solver.solve()
 
-        assert isinstance(self.solver.snes.ksp.getIterationNumber(),int)
+        assert isinstance(self._solver.snes.ksp.getIterationNumber(),int)
         
-        self._set_GMRES_its(self.solver.snes.ksp.getIterationNumber())
+        self._set_GMRES_its(self._solver.snes.ksp.getIterationNumber())
 
     def _initialise_problem(self):
         """
@@ -119,38 +120,18 @@ class HelmholtzProblem(object):
         self._a = (fd.inner(self._A * fd.grad(self._u), fd.grad(self._v))\
                    - self._k**2 * fd.inner(self._n * self._u,self._v)) * fd.dx\
                    - (1j* self._k * fd.inner(self._u,self._v)) * fd.ds
-        self._L =  fd.inner(self._f,self._v)*fd.dx\
-                   + fd.inner(self._g,self._v)*fd.ds
+        self._set_L()
+        
+        self._set_pre()
 
         # Define problem and solver (following code courtesy of Lawrence
         # Mitchell, via Slack)
-        if self._A_pre == None and self._n_pre == None:
-            a_pre = None
-            solver_parameters={"ksp_type": "gmres",
-                               "mat_type": "aij",
-                               "ksp_norm_type": "unpreconditioned"
-                               }
-        else:
-            a_pre = (fd.inner(self._A_pre * fd.grad(self._u),\
-                              fd.grad(self._v))\
-                     - self._k**2 * fd.inner(self._n * self._u,self._v))\
-                     * fd.dx\
-                     - (1j* self.k * fd.inner(self._u,self._v)) * fd.ds
-                     
-            solver_parameters={"ksp_type": "gmres",
-                               "mat_type": "aij",
-                               "pmat_type": "aij",
-                               "snes_lag_preconditioner": -1,
-                               "pc_type": "lu",
-                               "ksp_reuse_preconditioner": True,
-                               "ksp_norm_type": "unpreconditioned"
-                               }
-            
         problem = fd.LinearVariationalProblem(
-                      a, L, self.u_h, aP=a_pre, constant_jacobian=False)
+                      self._a, self._L, self.u_h,
+                      aP=self._a_pre, constant_jacobian=False)
         
         self._solver = fd.LinearVariationalSolver(
-                           problem, solver_parameter = solver_parameters)
+                           problem, solver_parameter = self._solver_parameters)
 
         self._set_initialised(True)
 
@@ -237,15 +218,59 @@ class HelmholtzProblem(object):
 
     def _set_initialised(self,TF):
         """Says whether the Helmholtz Problem has been initialised."""
+
         self._initialised = TF
 
     def _initialise_u_h(self):
         """Initialises the Function to hold the solution."""
+
         self.u_h = fd.Function(self._V)
 
+    def _set_pre(self):
+        """
+        Sets the preconditioning bilinear form and the solver
+        parameters.
+        """
 
 
+        if self._A_pre == None and self._n_pre == None:
+            self._a_pre = None
+            self._solver_parameters={"ksp_type": "gmres",
+                                     "mat_type": "aij",
+                                     "ksp_norm_type": "unpreconditioned"
+                                     }
+        else:
+            self._a_pre =\
+                (fd.inner(self._A_pre * fd.grad(self._u),fd.grad(self._v))\
+                - self._k**2 * fd.inner(self._n_pre * self._u,self._v))* fd.dx\
+                - (1j* self.k * fd.inner(self._u,self._v)) * fd.ds
+                     
+            self._solver_parameters={"ksp_type": "gmres",
+                                     "mat_type": "aij",
+                                     "pmat_type": "aij",
+                                     "snes_lag_preconditioner": -1,
+                                     "pc_type": "lu",
+                                     "ksp_reuse_preconditioner": True,
+                                     "ksp_norm_type": "unpreconditioned"
+                                     } 
+        
+    def _set_L(self):
+        """Sets the right-hand side of the weak form. A little bit
+        hacky, because Firedrake/UFL complains if f or g = 0.0.
+        """
 
+        x = fd.SpatialCoordinate(self._V.mesh())
+        
+        if self._f == 0.0:
+            self.set_f(x[0]-x[0])
+
+        if self._g == 0.0:
+            self.set_g(x[0]-x[0])
+
+        self._L =  fd.inner(self._f,self._v)*fd.dx\
+                   + fd.inner(self._g,self._v)*fd.ds
+
+        
 
 
 
@@ -264,102 +289,75 @@ class HelmholtzProblem(object):
         
 
 class StochasticHelmholtzProblem(HelmholtzProblem):
+    """Defines a stochastic Helmholtz finite-element problem."""
 
-    """Defines a stochastic Helmholtz finite-element problem.
-
-    All attributes are identical to HelmholtzProblem, except for the following new attributes:
-
-    - A_gen - a instance of a class with the following attributes/methods:
-
-        Attributes: A - a realisation of the type given by A in HelmholtzProblem. Must be implemented using Numpy.
-
-        Methods: resample_coeffs - randomly updates A
-
-        (This is specification is implementation-agnostic, but it's best to implement this using Firedrake Constants, as then the form doesn't need to be recompiled for each new realsiation.)
-
-    - n_gen - a instance of a class with the following attributes/methods:
-
-        Attributes: n - a realisation of the type given by n in HelmholtzProblem. Must be implemented using Numpy.
-
-        Methods: resample_coeffs - randomly updates n
-
-        (Same comment about implementation as for A_gen holds.)
-
-    - seed - int - the random seed used in the random generators underpinning A and n.
-    """
-
-    def __init__(self, mesh, V, k, A_gen, n_gen, f, g, seed=1, boundary_condition_type="Impedance", aP=None):
+    def __init__(self, k, V, A_stoch, n_stoch, seed=1, **kwargs):
         """Creates an instance of StochasticHelmholtzProblem.
 
-        mesh - as in HelmholtzProblem
+        All arguments are as in HelmholtzProblem, apart from:
 
-        V - as in HelmholtzProblem
+        - A_stoch - a instance of a class with the following
+          attributes/methods:
 
-        k - as in HelmholtzProblem
+            Attributes: A - a realisation of the type given by A in
+            HelmholtzProblem. Must be implemented using Numpy.
 
-        A_gen - as above
+            Methods: sample - randomly updates A
 
-        n_gen - as above
+            (This is specification is implementation-agnostic, but it's
+            best to implement this using Firedrake Constants, as then
+            the form doesn't need to be recompiled for each new
+            realisation.)
 
-        f - as in HelmholtzProblem
+        - n_stoch - a instance of a class with the following
+          attributes/methods:
 
-        g - as in HelmholtzProblem
+            Attributes: n - a realisation of the type given by n in
+            HelmholtzProblem. Must be implemented using Numpy.
 
-        seed - as above
+            Methods: sample - randomly updates n
 
-        boundary_condition_type - as in HelmholtzProblem
+            (Same comment about implementation as for A_gen holds.)
 
-        aP - as in HelmholtzProblem
+        - **kwargs takes a dictionary whose keys are some subset of
+            {A_pre,n_pre,f,g}, where these satisfy the requirements
+            in HelmholtzProblem.
         """
-        
-        if not(isinstance(seed,int)):
-            raise UserInputError("Input 'seed' must be an int.")
-        elif not(isinstance(A_gen,collections.Callable)): # See https://bugs.python.org/issue10518
-            raise UserInputError("Input 'A_gen' must be a function.")
-        elif not(isinstance(n_gen,collections.Callable)):
-            raise UserInputError("Input 'A_gen' must be a function.")
-        
-        self.seed = seed
 
-        self.A_gen = A_gen
+        self._set_A_sample(A_stoch.sample)
 
-        self.n_gen = n_gen
-        
-        np.random.seed(self.seed)
-        
-        super().__init__(mesh, V, k, self.A_gen.A, self.n_gen.n, f, g, boundary_condition_type="Impedance", aP=None)
+        self._set_n_sample(n_stoch.sample)
 
-    def resample_coefficients(self):
-        """Replaces the coefficients A and n with a new sample drawn from A_gen and n_gen."""
+        self.set_seed(seed)
+               
+        super().__init__(k, V, A=A_stoch.A, n=n_stoch.n,
+                         **kwargs)
 
-        self.A_gen.resample_coeffs()
+    def sample(self):
+        """Samples the coefficients A and n."""
 
-        self.n_gen.resample_coeffs()
+        self._A_sample()
 
-    def reset_seed(self,new_seed=1):
-        """Resets the random seed."""
+        self._n_sample()
 
-        if not(isinstance(new_seed),int) or new_seed < 0 or 2**32 < new_seed:
-            UserInputError("Input argument 'new_seed' should be an integer between 0 and 2**32 - 1.")
-                           
-        self.seed = new_seed
+    def _set_A_sample(self,method):
+        """Sets the method for sampling A."""
 
-        np.random.seed(self.seed)
+        self._A_sample = method
 
-            
-class UserInputError(Exception):
-    """Error raised when the user fails to supply correct inputs.
+    def _set_n_sample(self,method):
+        """Sets the method for sampling n."""
+
+        self._n_sample = method
+
+    def set_seed(self,seed):
+        """Sets the random seed."""
+        self._seed = seed
     
-    Attributes:
-        message - Error message explaining the error.
-    """
-
-    def __init__(self,message):
-
-        self.message = message
 
 class HelmholtzNotImplementedError(Exception):
-    """Error raised when a given feature isn't implemented in helmholtz_firedrake yet.
+    """Error raised when a given feature isn't implemented in
+    helmholtz_firedrake yet.
     
     Attributes:
         message - Error message explaining the error.

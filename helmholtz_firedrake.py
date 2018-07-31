@@ -243,7 +243,7 @@ class HelmholtzProblem(object):
             self._a_pre =\
                 (fd.inner(self._A_pre * fd.grad(self._u),fd.grad(self._v))\
                 - self._k**2 * fd.inner(self._n_pre * self._u,self._v))* fd.dx\
-                - (1j* self.k * fd.inner(self._u,self._v)) * fd.ds
+                - (1j* self._k * fd.inner(self._u,self._v)) * fd.ds
                      
             self._solver_parameters={"ksp_type": "gmres",
                                      "mat_type": "aij",
@@ -291,7 +291,7 @@ class HelmholtzProblem(object):
 class StochasticHelmholtzProblem(HelmholtzProblem):
     """Defines a stochastic Helmholtz finite-element problem."""
 
-    def __init__(self, k, V, A_stoch, n_stoch, seed=1, **kwargs):
+    def __init__(self, k, V, A_stoch, n_stoch, **kwargs):
         """Creates an instance of StochasticHelmholtzProblem.
 
         All arguments are as in HelmholtzProblem, apart from:
@@ -299,25 +299,26 @@ class StochasticHelmholtzProblem(HelmholtzProblem):
         - A_stoch - a instance of a class with the following
           attributes/methods:
 
-            Attributes: A - a realisation of the type given by A in
+            Attributes: coeff - a realisation of the type given by A in
             HelmholtzProblem. Must be implemented using Numpy.
 
-            Methods: sample - randomly updates A
+            Methods: sample - randomly updates coeff
 
-            (This is specification is implementation-agnostic, but it's
-            best to implement this using Firedrake Constants, as then
-            the form doesn't need to be recompiled for each new
-            realisation.)
+            This is specification is implementation-agnostic, but it's
+            best to implement this using Firedrake Constants (so that
+            sample() simply assign()s the values of the Constants), as
+            then the form doesn't need to be recompiled for each new
+            realisation.
 
         - n_stoch - a instance of a class with the following
           attributes/methods:
 
-            Attributes: n - a realisation of the type given by n in
+            Attributes: coeff - a realisation of the type given by n in
             HelmholtzProblem. Must be implemented using Numpy.
 
-            Methods: sample - randomly updates n
+            Methods: sample - randomly updates coeff
 
-            (Same comment about implementation as for A_gen holds.)
+            Same comment about implementation as for A_gen holds.
 
         - **kwargs takes a dictionary whose keys are some subset of
             {A_pre,n_pre,f,g}, where these satisfy the requirements
@@ -327,10 +328,8 @@ class StochasticHelmholtzProblem(HelmholtzProblem):
         self._set_A_sample(A_stoch.sample)
 
         self._set_n_sample(n_stoch.sample)
-
-        self.set_seed(seed)
-               
-        super().__init__(k, V, A=A_stoch.A, n=n_stoch.n,
+              
+        super().__init__(k, V, A=A_stoch.coeff, n=n_stoch.coeff,
                          **kwargs)
 
     def sample(self):
@@ -349,11 +348,6 @@ class StochasticHelmholtzProblem(HelmholtzProblem):
         """Sets the method for sampling n."""
 
         self._n_sample = method
-
-    def set_seed(self,seed):
-        """Sets the random seed."""
-        self._seed = seed
-    
 
 class HelmholtzNotImplementedError(Exception):
     """Error raised when a given feature isn't implemented in

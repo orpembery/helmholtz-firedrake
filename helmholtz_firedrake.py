@@ -349,7 +349,7 @@ class StochasticHelmholtzProblem(HelmholtzProblem):
 
         self._n_sample = method
 
-class HelmholtzNotImplementedError(Exception):
+class HelmholtzNotYetImplementedError(Exception):
     """Error raised when a given feature isn't implemented in
     helmholtz_firedrake yet.
     

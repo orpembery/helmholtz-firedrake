@@ -5,7 +5,8 @@ import subprocess
 import datetime
 import csv
 
-def nearby_preconditioning_test(V,k,A_pre,A_stoch,n_pre,n_stoch,f,g,num_repeats):
+def nearby_preconditioning_test(V,k,A_pre,A_stoch,n_pre,n_stoch,f,g,
+                                num_repeats):
     """For a given preconditioning Helmholtz problem, performs a test of
     the effectiveness of nearby preconditioning.
 
@@ -37,10 +38,13 @@ def nearby_preconditioning_test(V,k,A_pre,A_stoch,n_pre,n_stoch,f,g,num_repeats)
     num_repeats - int, specifying the number of realisations to take.
 
 
-    Returns a list of ints of length num_repeats, giving the number of
-    GMRES iterations for the different realisations.  """
+    Returns: list of ints of length num_repeats, giving the number of
+    GMRES iterations for the different realisations.
+    """
 
-    prob = hh.StochasticHelmholtzProblem(k=k, V=V, A_stoch=A_stoch, n_stoch=n_stoch, **{"A_pre": A_pre, "n_pre" : n_pre, "f" : f, "g" : g})
+    prob = hh.StochasticHelmholtzProblem(
+        k=k, V=V, A_stoch=A_stoch, n_stoch=n_stoch,
+        **{"A_pre": A_pre, "n_pre" : n_pre, "f" : f, "g" : g})
 
     all_GMRES_its = []
 
@@ -53,7 +57,10 @@ def nearby_preconditioning_test(V,k,A_pre,A_stoch,n_pre,n_stoch,f,g,num_repeats)
 
     return all_GMRES_its
 
-def nearby_preconditioning_test_set(A_pre_type,n_pre_type,num_pieces,seed,num_repeats,k_list,h_list,noise_master_level_list,noise_modifier_list,save_location):
+def nearby_preconditioning_test_set(
+        A_pre_type,n_pre_type,num_pieces,seed,num_repeats,
+        k_list,h_list,noise_master_level_list,noise_modifier_list,
+        save_location):
     """Performs many nearby preconditioning tests for a range of
     parameter values.
 
@@ -61,7 +68,7 @@ def nearby_preconditioning_test_set(A_pre_type,n_pre_type,num_pieces,seed,num_re
     the mesh size h, and the size of the random noise (which can be
     specified in terms of k and h). The random noise is piecewise
     constant on a grid unrelated to the finite-element mesh.
-# UPDATE THIS
+
     Parameters:
 
     A_pre_type - string - options are 'constant', giving A_pre =
@@ -84,31 +91,37 @@ def nearby_preconditioning_test_set(A_pre_type,n_pre_type,num_pieces,seed,num_re
     noise_master_level_list - list of 2-tuples, where each entry of the
     tuple is a positive float.  This defines the values of base_noise_A
     and base_noise_n to be used in the experiments. Call a given tuple
-    t. The base_noise_A = t[0] and base_noise_n = t[1].
+    t. Then base_noise_A = t[0] and base_noise_n = t[1].
 
     noise_modifier_list - list of 4-tuples; the entries of each tuple
     should be floats. Call a given tuple t. This modifies the base noise
     so that the L^\infty norms of A and n are less than or equal to
     (respectively) base_noise_A * h**t[0] * k**t[1] and base_noise_n *
     h**t[2] * k**t[3].
+
+    save_location - string specifying the subfolder of the current
+    folder in which to save the .csv output files.
     """
 
     if not(isinstance(A_pre_type,str)):
         raise hh.UserInputError("Input A_pre_type should be a string")
     elif A_pre_type is not "constant":
-        raise HelmholtzNotImplementedError("Currently only implemented A_pre_type = 'constant'.")
+        raise HelmholtzNotImplementedError(
+            "Currently only implemented A_pre_type = 'constant'.")
 
     if not(isinstance(n_pre_type,str)):
         raise hh.UserInputError("Input n_pre_type should be a string")
     elif n_pre_type is not "constant":
-        raise HelmholtzNotImplementedError("Currently only implemented n_pre_type = 'constant'.")
+        raise HelmholtzNotImplementedError(
+            "Currently only implemented n_pre_type = 'constant'.")
 
     if not(isinstance(k_list,list)):
         raise hh.UserInputError("Input k_list should be a list.")
     elif any(not(isinstance(k,float)) for k in k_list):
         raise hh.UserInputError("Input k_list should be a list of floats.")
     elif any(k <= 0 for k in k_list):
-        raise hh.UserInputError("Input k_list should be a list of positive floats.")
+        raise hh.UserInputError(
+            "Input k_list should be a list of positive floats.")
 
     if not(isinstance(h_list,list)):
         raise hh.UserInputError("Input h_list should be a list.")
@@ -116,28 +129,48 @@ def nearby_preconditioning_test_set(A_pre_type,n_pre_type,num_pieces,seed,num_re
         raise hh.UserInputError("Input h_list should be a list of tuples.")
     elif any(len(h_tuple) is not 2 for h_tuple in h_list):
         raise hh.UserInputError("Input h_list should be a list of 2-tuples.")
-    elif any(not(isinstance(h_tuple[0],float)) for h_tuple in h_list) or any(h_tuple[0] <= 0 for h_tuple in h_list):
-        raise hh.UserInputError("The first item of every tuple in h_list should be a positive float.")
+    elif any(not(isinstance(h_tuple[0],float)) for h_tuple in h_list)
+             or any(h_tuple[0] <= 0 for h_tuple in h_list):
+        raise hh.UserInputError(
+            "The first item of every tuple in h_list\
+            should be a positive float.")
     elif any(not(isinstance(h_tuple[1],float)) for h_tuple in h_list):
-        raise hh.UserInputError("The second item of every tuple in h_list should be a float.")
+        raise hh.UserInputError(
+            "The second item of every tuple in h_list should be a float.")
 
     if not(isinstance(noise_master_level_list,list)):
-        raise hh.UserInputError("Input noise_master_level_list should be a list.")
-    elif any(not(isinstance(noise_tuple,tuple)) for noise_tuple in noise_master_level_list):
-        raise hh.UserInputError("Input noise_master_level_list should be a list of tuples.")
-    elif any(len(noise_tuple) is not 2 for noise_tuple in noise_master_level_list):
-        raise hh.UserInputError("Input noise_master_level_list should be a list of 2-tuples.")
-    elif any(any(not(isinstance(noise_tuple[i],float)) for i in range(len(noise_tuple))) for noise_tuple in noise_master_level_list):
-        raise hh.UserInputError("Input noise_master_level_list should be a list of 2-tuples of floats.")
+        raise hh.UserInputError(
+            "Input noise_master_level_list should be a list.")
+    elif any(not(isinstance(noise_tuple,tuple))
+             for noise_tuple in noise_master_level_list):
+        raise hh.UserInputError(
+            "Input noise_master_level_list should be a list of tuples.")
+    elif any(len(noise_tuple) is not 2
+             for noise_tuple in noise_master_level_list):
+        raise hh.UserInputError(
+            "Input noise_master_level_list should be a list of 2-tuples.")
+    elif any(any(not(isinstance(noise_tuple[i],float))
+                 for i in range(len(noise_tuple)))
+             for noise_tuple in noise_master_level_list):
+        raise hh.UserInputError(
+            "Input noise_master_level_list\
+            should be a list of 2-tuples of floats.")
 
     if not(isinstance(noise_modifier_list,list)):
         raise hh.UserInputError("Input noise_modifier_list should be a list.")
-    elif any(not(isinstance(mod_tuple,tuple)) for mod_tuple in noise_modifier_list):
-        raise hh.UserInputError("Input noise_modifier_list should be a list of tuples.")
+    elif any(not(isinstance(mod_tuple,tuple))
+             for mod_tuple in noise_modifier_list):
+        raise hh.UserInputError(
+            "Input noise_modifier_list should be a list of tuples.")
     elif any(len(mod_tuple) is not 4 for mod_tuple in noise_modifier_list):
-        raise hh.UserInputError("Input noise_modifier_list should be a list of 4-tuples.")
-    elif any(any(not(isinstance(mod_tuple[i],float)) for i in range(len(mod_tuple))) for mod_tuple in noise_modifier_list):
-        raise hh.UserInputError("Input noise_modifier_list should be a list of 4-tuples of floats.")
+        raise hh.UserInputError(
+            "Input noise_modifier_list should be a list of 4-tuples.")
+    elif any(any(not(isinstance(mod_tuple[i],float))
+                 for i in range(len(mod_tuple)))
+             for mod_tuple in noise_modifier_list):
+        raise hh.UserInputError(
+            "Input noise_modifier_list\
+            should be a list of 4-tuples of floats.")
 
     if A_pre_type is "constant":
         A_pre = fd.as_matrix([[1.0,0.0],[0.0,1.0]])
@@ -168,37 +201,81 @@ def nearby_preconditioning_test_set(A_pre_type,n_pre_type,num_pieces,seed,num_re
                     n_modifier = h ** modifier[2] * k**modifier[3]
                     A_noise_level = A_noise_master * A_modifier
                     n_noise_level = n_noise_master * n_modifier
-                    A_stoch = CoeffGenerator(mesh,num_pieces,A_noise_level,A_pre,[2,2])
-                    n_stoch = CoeffGenerator(mesh,num_pieces,n_noise_level,n_pre,[1])
+                    A_stoch = CoeffGenerator(
+                        mesh,num_pieces,A_noise_level,A_pre,[2,2])
+                    n_stoch = CoeffGenerator(
+                        mesh,num_pieces,n_noise_level,n_pre,[1])
                     np.random.seed(seed)
                     
-                    GMRES_its = nearby_preconditioning_test(V,k,A_pre,A_stoch,n_pre,n_stoch,f,g,num_repeats)
+                    GMRES_its = nearby_preconditioning_test(
+                        V,k,A_pre,A_stoch,n_pre,n_stoch,f,g,num_repeats)
 
-                    write_GMRES_its(GMRES_its,k,h_tuple,num_pieces,A_pre_type,n_pre_type,noise_master,modifier,num_repeats,save_location)
+                    write_GMRES_its(
+                        GMRES_its,k,h_tuple,num_pieces,A_pre_type,n_pre_type,
+                        noise_master,modifier,num_repeats,save_location)
 def h_to_mesh_points(h):
     """Given a mesh size h, computes the arguments to Firedrake's
     UnitSquareMesh that will give (at most) that mesh size.
+
+    Parameter:
+
+    h - positive float - the mesh size.
     """
     return np.ceil(np.sqrt(2.0)/h)
 
-def write_GMRES_its(GMRES_its,k,h_tuple,num_pieces,A_pre_type,n_pre_type,noise_master,modifier,num_repeats,save_location):
+def write_GMRES_its(GMRES_its,k,h_tuple,num_pieces,A_pre_type,n_pre_type,
+                    noise_master,modifier,num_repeats,save_location):
     """Writes the number of GMRES iterations, and other information, to
     a .csv file.
+
+    Parameters:
+
+    GMRES_its - list of positive ints of length num_repeats (output of
+    nearby_preconditioning_test).
+
+    k - see nearby_preconditioning_test.
+
+    h_tuple - 2-tuple - an element of the list h_list in
+    nearby_preconditioning_test_set.
+
+    num_pieces - see nearby_preconditioning_test_set.
+
+    A_pre_type - see nearby_preconditioning_test_set.
+
+    n_pre_type - see nearby_preconditioning_test_set.
+
+    noise_master - 2-tuple - element of the list noise_master_level_list
+    in nearby_preconditioning_test_set.
+
+    modifier - 4-tuple - element of the list noise_modifier_list in
+    nearby_preconditioning_test_set.
+
+    num_repeats - see nearby_preconditioning_test.
+
+    save_location - see nearby_preconditioning_test_set.
     """
 
     # Get git hash
-    git_hash = subprocess.run("git rev-parse HEAD", shell=True, stdout=subprocess.PIPE)
-    git_hash_string = git_hash.stdout.decode('UTF-8')[:-1] # help from https://stackoverflow.com/a/6273618
+    git_hash = subprocess.run("git rev-parse HEAD", shell=True,
+                              stdout=subprocess.PIPE)
+    # help from https://stackoverflow.com/a/6273618
+    git_hash_string = git_hash.stdout.decode('UTF-8')[:-1]
 
     # Get current date and time
-    date_time = datetime.datetime(1,1,1) # This initialises the object. I don't understand why this is necessary.
+    # This initialises the object. I don't understand why this is
+    # necessary.
+    date_time = datetime.datetime(1,1,1)
     date_time = date_time.utcnow().isoformat()
   
     # Write CSV
-    with open(save_location + 'nearby-preconditioning-test-output-' + date_time + '.csv', 'w', newline = '') as csvfile: # from https://docs.python.org/3.5/library/csv.html
-        file_writer = csv.writer(csvfile, delimiter = ',', quoting = csv.QUOTE_MINIMAL)
+    # from https://docs.python.org/3.5/library/csv.html
+    with open(save_location + 'nearby-preconditioning-test-output-'
+              + date_time + '.csv', 'w', newline = '') as csvfile:
+        file_writer = csv.writer(csvfile, delimiter = ',',
+                                 quoting = csv.QUOTE_MINIMAL)
         file_writer.writerow(['Git hash', git_hash_string])
-        file_writer.writerow(['Date/Time', date_time]) # Current time in UTC as an ISO string
+        # Current time in UTC as an ISO string
+        file_writer.writerow(['Date/Time', date_time])
         file_writer.writerow(['k',k ])
         file_writer.writerow(['h_tuple',h_tuple])
         file_writer.writerow(['num_pieces',num_pieces])
@@ -207,7 +284,8 @@ def write_GMRES_its(GMRES_its,k,h_tuple,num_pieces,A_pre_type,n_pre_type,noise_m
         file_writer.writerow(['noise_master',noise_master])
         file_writer.writerow(['modifier',modifier])
         file_writer.writerow(['num_repeats',num_repeats])
-        file_writer.writerow(['Experiment number','Number of GMRES iterations'])
+        file_writer.writerow(
+            ['Experiment number','Number of GMRES iterations'])
 
         for ii in range(len(GMRES_its)):
             file_writer.writerow([ii,GMRES_its[ii]])
@@ -231,6 +309,22 @@ class CoeffGenerator(object):
         """Initialises a piecewise-constant random coefficient, where
         the coefficient is peicewise-constant on a num_pieces x
         num_pieces grid.
+
+        Parameters:
+
+        mesh - a Firedrake mesh object.
+
+        num_pieces - see nearby_preconditioning_test_set.
+
+        noise_level - positive float - the level of the random noise.
+
+        coeff_pre - a UFL expression with dimension coeff_dims - the
+        background around which we take piecewise-constant random
+        perturbations.
+
+        coeff_dims - a list, either [1] or [2,2] - the `dimension' of
+        the coefficient (i.e., either scalar-valued or 2x2 matrix
+        valued).
         """
 
         self._set_coeff_dims(coeff_dims)
@@ -246,17 +340,28 @@ class CoeffGenerator(object):
 
     def _list_extract(self,values_list,x_coord,y_coord,coord_length):
         """If values_list were put into a coord_length x
-        coord_length array, extarcts the item at position
-        (x_coord,y_coord). The list values_list should contain
-        coord_length**2 elements.
+        coord_length array, extracts the item at position
+        (x_coord,y_coord).
+        
+        Parameters:
+        
+        values_list - list of length coord_length**2.
+
+        x_coord, y_coord - int in range(coord_length).
+
+        coord_length - int.
         """
         return values_list[x_coord + y_coord * coord_length]
 
 
     def _symmetrise(self,coeff):
-        """Will 'symmetrise' a 2x2 matrix by copying the lower left-hand
-        entry into the top right-hand entry. Will leave a 1x1 matrix
-        alone.
+        """Will 'symmetrise' a 2x2 numpy array by copying the lower
+        left-hand entry into the top right-hand entry. Will leave a 1x1
+        matrix alone.
+
+        Parameters:
+
+        coeff - either a 1x1 or 2x2 numpy array.
         """
         if self._coeff_dims == [2,2]:
             coeff_lower = np.tril(coeff,k=-1)
@@ -265,20 +370,35 @@ class CoeffGenerator(object):
         return coeff
 
     def _heaviside(self,x):
-        """Defines the heaviside step function - x is a single
-        coordinate of SpatialCoordinate.
+        """Defines the heaviside step function in UFL.
+
+        Parameters:
+
+        x - single coordinate of a UFL SpatialCoordinate.
         """
         return 0.5 * (fd.sign(fd.real(x)) + 1.0)
 
     def _Iab(self,x,a,b) :
-        """Indicator function on [a,b]. x is a single coordinate of a
-        SpatialCoordinate. 0.0 <= a < b <= 1 are doubles.
+        """Indicator function on [a,b] in UFL.
+
+        Parameters:
+
+        x - single coordinate of a UFL SpatialCoordinate.
+        
+        a, b - floats in [0,1].
         """
         return self._heaviside(x-a) - self._heaviside(x-b)
 
     def _coeff_initialise(self,mesh,coeff_pre):
-        """Initialises coeff equal to coeff_pre, but sets up Firedrake
-        Constant structure to allow for sampling.
+        """Initialises self.coeff equal to coeff_pre, but sets up
+        Firedrake Constant structure to allow for sampling.
+
+        Parameters:
+
+        mesh - a Firedrake mesh.
+
+        coeff_pre - a UFL expression with `dimension' [1] or [2,2]
+        (i.e., a real-valued or 2x2 matrix-valued UFL expression.
         """
 
         self._coeff_values = []
@@ -289,8 +409,8 @@ class CoeffGenerator(object):
             elif self._coeff_dims == [1]:
                 self._coeff_values.append(np.array(0.0))
             else:
-                raise hh.HelmholtzNotImplementedError(
-                          "Currently have only implemented real- and\
+                raise NotImplementedError(
+                          "Have only implemented real- and\
                           matrix-valued coefficients")
                 
         self._coeff_values = [fd.Constant(coeff_dummy,domain=mesh)
@@ -304,8 +424,10 @@ class CoeffGenerator(object):
         for xii in range(self._num_pieces):
             for yii in range(self._num_pieces):
                 self.coeff +=\
-                self._list_extract(self._coeff_values,xii,yii,self._num_pieces)\
-                * self._Iab(x[0],xii/self._num_pieces,(xii+1)/self._num_pieces)\
+                self._list_extract(self._coeff_values,xii,yii,
+                                   self._num_pieces)\
+                * self._Iab(x[0],xii/self._num_pieces,(xii+1)/
+                            self._num_pieces)\
                 * self._Iab(x[1],yii/self._num_pieces,(yii+1)/self._num_pieces)
 
     def sample(self):
@@ -317,18 +439,39 @@ class CoeffGenerator(object):
          for coeff_dummy in self._coeff_values]
 
     def _set_num_pieces(self,num_pieces):
-        """Sets the number of pieces in the coefficients."""
+        """Sets the number of pieces in the coefficients.
+
+        Parameters:
+
+        num_pieces - positive int.
+        """
         self._num_pieces = num_pieces
 
     def _set_coeff_dims(self,coeff_dims):
-        """Sets the dimensions of the image of the coefficients."""
+        """Sets the dimensions of the image of the coefficients.
+
+        Parameters:
+
+        coeff_dims - either [1] or [2,2].
+        """
         self._coeff_dims = coeff_dims
 
     def set_noise_level(self,noise_level):
-        """Sets the level of random noise in the coefficients."""
+        """Sets the level of random noise in the coefficients.
+
+        Parameters:
+
+        noise_level - positive float.
+        """
         self._noise_level = noise_level
 
     def _set_coeff_pre(self,coeff_pre):
-        """Sets the 'centre' of the distribution of the coefficients."""
+        """Sets the 'centre' of the distribution of the coefficients.
+        
+        Parameters:
+
+        coeff_pre - a UFL expression with `dimension' [1] or [2,2]
+        (i.e., a real-valued or 2x2 matrix-valued UFL expression.
+        """
         self._coeff_pre = coeff_pre
 

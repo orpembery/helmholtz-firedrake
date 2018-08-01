@@ -12,8 +12,8 @@ class HelmholtzProblem(object):
     Modifiying coefficients/forcing functions can be done one of two
     ways:
 
-    1) Using the 'set_' methods built into the class. This will cause
-    Firedrake to re-compile new C code, and therefore is slower.
+    1) Using the defined 'set_' methods built into the class. This will
+    cause Firedrake to re-compile new C code, and therefore is slower.
 
     2) If the coefficients/forcing functions are partly defined using
     Firedrake Constants, these Constants can be updated directly using
@@ -22,6 +22,38 @@ class HelmholtzProblem(object):
 
     Do NOT modify the attributes directly to change the coefficients
     (when this happens, the problem must be re-initialised).
+
+    Attributes defined:
+
+        k - see parameters of init.
+
+        A - see parameters of init.
+
+        n - see parameters of init.
+
+        A_pre - see parameters of init.
+
+        n_pre - see parameters of init.
+
+        f - see parameters of init.
+
+        g - see parameters of init.
+        
+        u_h - a Firedrake Function holding the numerical solution of the
+        PDE (equals the zero function if solve() has not been called).
+
+        GMRES_its - int holding the number of GMRES iterations it took
+        for the solver to converge (equals -1 if solve() has not been
+        called).
+
+    Methods defined:
+
+        set_prop (where prop is one of k, A, n, A_pre, n_pre, f, g) -
+        sets the corresponding attribute and re-initialises the problem,
+
+        solve - solves the PDE using (preconditioned) GMRES and updates
+        the attirbutes u_h and GMRES_its with the solution and the
+        number of GMRES iterations, respectively.
     """
 
     def __init__(self, k, V,
@@ -30,7 +62,7 @@ class HelmholtzProblem(object):
                  f=1.0,g=0.0):
         """Creates an instance of HelmholtzProblem.
 
-        Arguments:
+        Parameters:
 
         k - a positive float
 
@@ -58,18 +90,8 @@ class HelmholtzProblem(object):
 
         g - A UFL expression for the right-hand side of the impedance
         boundary condition.
-
-        
-        Attributes defined:
-
-        u_h - a Firedrake Function holding the numerical solution of the
-        PDE (equals the zero function if solve() has not been called).
-
-        GMRES_its - int holding the number of GMRES iterations it took
-        for the solver to converge (equals -1 if solve() has not been
-        called).
         """
-        self._set_initialised(False)
+        self._initialised = False
         
         self.set_k(k)
 
@@ -85,14 +107,18 @@ class HelmholtzProblem(object):
 
         self.set_g(g)
 
-        self.set_V(V)
+        self._V = V
 
-        self._set_GMRES_its()
+        self.GMRES_its = -1
+        """int - number of GMRES iterations. Initialised as -1."""
 
-        self._initialise_u_h()
+        self._u_h = fd.Function(self._V)
+        """Firedrake function - initialised as zero function."""
 
     def solve(self):
         """
+        Solve the Helmholtz problem.
+
         Solves the Helmholtz Problem, and creates attributes of the
         solution and the number of GMRES iterations. Warning - can take
         a while!"""
@@ -104,12 +130,11 @@ class HelmholtzProblem(object):
 
         assert isinstance(self._solver.snes.ksp.getIterationNumber(),int)
         
-        self._set_GMRES_its(self._solver.snes.ksp.getIterationNumber())
+        self.GMRES_its = self._solver.snes.ksp.getIterationNumber()
 
     def _initialise_problem(self):
         """
-        Sets up all the TrialFunction, TestFunction etc. machinery
-        for solving the Helmholtz problem.
+        Set up the Firedrake machinery for solving the problem.
         """
 
         # Define trial and test functions on the space
@@ -133,10 +158,9 @@ class HelmholtzProblem(object):
         self._solver = fd.LinearVariationalSolver(
                            problem, solver_parameter = self._solver_parameters)
 
-        self._set_initialised(True)
+        self._initialised = True
 
     def set_k(self,k):
-
         """Sets the wavenumber k."""
 
         self._k = k
@@ -145,7 +169,7 @@ class HelmholtzProblem(object):
             self._initialise_problem()
         
     def set_A(self,A):
-        """Sets the 'diffusion coefficient' A."""
+        """Set the 'diffusion coefficient' A."""
 
         self._A = A
 
@@ -154,7 +178,7 @@ class HelmholtzProblem(object):
         
 
     def set_n(self,n):
-        """Sets the 'squared slowness' n."""
+        """Set the 'squared slowness' n."""
 
         self._n = n
 
@@ -163,8 +187,7 @@ class HelmholtzProblem(object):
             
     def set_A_pre(self,A_pre):
         """
-        Sets the 'diffusion coefficient' for the preconditioning
-        problem.
+        Set A for the preconditioning problem.
         """
 
         self._A_pre = A_pre
@@ -174,7 +197,7 @@ class HelmholtzProblem(object):
 
     def set_n_pre(self,n_pre):
         """
-        Sets the 'squared slowness' for the preconditioning problem.
+        Set the 'squared slowness' for the preconditioning problem.
         """
 
         self._n_pre = n_pre
@@ -183,7 +206,7 @@ class HelmholtzProblem(object):
             self._initialise_problem()
 
     def set_f(self,f):
-        """Sets the 'domain forcing function' f."""
+        """Set the 'domain forcing function' f."""
 
         self._f = f
 
@@ -191,45 +214,20 @@ class HelmholtzProblem(object):
             self._initialise_problem()
         
     def set_g(self,g):
-        """Sets the 'impedance boundary forcing function' g."""
+        """Set the 'impedance boundary forcing function' g."""
 
         self._g = g
 
         if self._initialised:
             self._initialise_problem()
 
-    def _set_GMRES_its(self,GMRES_its=-1):
-        """
-        Sets the number of GMRES iterations needed to solve the
-        Helmholtz problem.
-        """
-        self.GMRES_its = GMRES_its
-
-    def _set_u_h(self,u_h):
-        """Sets the finite-element solution of the Helmholtz problem."""
-
-        self.u_h = u_h
-
-    def set_V(self,V):
-        """Sets the function space."""
-
-        self._V = V
 
 
-    def _set_initialised(self,TF):
-        """Says whether the Helmholtz Problem has been initialised."""
 
-        self._initialised = TF
-
-    def _initialise_u_h(self):
-        """Initialises the Function to hold the solution."""
-
-        self.u_h = fd.Function(self._V)
 
     def _set_pre(self):
         """
-        Sets the preconditioning bilinear form and the solver
-        parameters.
+        Set the preconditioning bilinear form and the solver parameters.
         """
 
 
@@ -255,8 +253,10 @@ class HelmholtzProblem(object):
                                      } 
         
     def _set_L(self):
-        """Sets the right-hand side of the weak form. A little bit
-        hacky, because Firedrake/UFL complains if f or g = 0.0.
+        """Set the right-hand side of the weak form.
+
+        A little bit hacky, because Firedrake/UFL complains if f or g =
+        0.0.
         """
 
         x = fd.SpatialCoordinate(self._V.mesh())
@@ -270,7 +270,7 @@ class HelmholtzProblem(object):
         self._L =  fd.inner(self._f,self._v)*fd.dx\
                    + fd.inner(self._g,self._v)*fd.ds
 
-        
+   
 
 
 
@@ -289,12 +289,26 @@ class HelmholtzProblem(object):
         
 
 class StochasticHelmholtzProblem(HelmholtzProblem):
-    """Defines a stochastic Helmholtz finite-element problem."""
+    """Defines a stochastic Helmholtz finite-element problem.
+
+    All attributes and methods are as in HelmholtzProblem, except for the following additions:
+
+    Attributes:
+
+    A_stoch - see parameters of init.
+
+    n_stoch - see parameters of init
+
+    Methods:
+
+    sample - samples (using the sample methods of A_stoch and n_stoch)
+    the coefficients A and n, and updates them.
+    """
 
     def __init__(self, k, V, A_stoch, n_stoch, **kwargs):
         """Creates an instance of StochasticHelmholtzProblem.
 
-        All arguments are as in HelmholtzProblem, apart from:
+        All parameters are as in HelmholtzProblem, apart from:
 
         - A_stoch - a instance of a class with the following
           attributes/methods:
@@ -325,9 +339,9 @@ class StochasticHelmholtzProblem(HelmholtzProblem):
             in HelmholtzProblem.
         """
 
-        self._set_A_sample(A_stoch.sample)
+        self._A_sample = A_stoch.sample
 
-        self._set_n_sample(n_stoch.sample)
+        self._n_sample = n_stoch.sample
               
         super().__init__(k, V, A=A_stoch.coeff, n=n_stoch.coeff,
                          **kwargs)
@@ -338,25 +352,3 @@ class StochasticHelmholtzProblem(HelmholtzProblem):
         self._A_sample()
 
         self._n_sample()
-
-    def _set_A_sample(self,method):
-        """Sets the method for sampling A."""
-
-        self._A_sample = method
-
-    def _set_n_sample(self,method):
-        """Sets the method for sampling n."""
-
-        self._n_sample = method
-
-class HelmholtzNotYetImplementedError(Exception):
-    """Error raised when a given feature isn't implemented in
-    helmholtz_firedrake yet.
-    
-    Attributes:
-        message - Error message explaining the error.
-    """
-
-    def __init__(self,message):
-
-        self.message = message

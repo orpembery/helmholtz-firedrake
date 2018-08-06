@@ -49,8 +49,14 @@ def nearby_preconditioning_test(V,k,A_pre,A_stoch,n_pre,n_stoch,f,g,
     all_GMRES_its = []
 
     for ii_repeat in range(num_repeats):
-        prob.solve()
-
+        try:
+            prob.solve()
+        except RecursionError:
+            print("Suffered a Python RecursionError.\n
+            Have you specified something using a big loop in UFL?\n
+            Aborting all further solves.")
+            break
+            
         all_GMRES_its.append(prob.GMRES_its)
 
         prob.sample()
@@ -61,8 +67,7 @@ def nearby_preconditioning_test_set(
         A_pre_type,n_pre_type,num_pieces,seed,num_repeats,
         k_list,h_list,noise_master_level_list,noise_modifier_list,
         save_location):
-    """Performs many nearby preconditioning tests for a range of
-    parameter values.
+    """Does nearby preconditioning tests for a range of parameter values.
 
     Performs nearby preconditioning tests for a range of values of k,
     the mesh size h, and the size of the random noise (which can be
@@ -75,6 +80,8 @@ def nearby_preconditioning_test_set(
     [[1.0,0.0],[0.0,1.0]].
 
     n_pre_type - string - options are 'constant', giving n_pre = 1.0.
+
+    num_pieces - see CoeffGenerator.
 
     seed - see StochasticHelmholtzProblem.
 
@@ -299,11 +306,17 @@ class CoeffGenerator(object):
     until they've sorted complex so that I can do things the way Julian
     does.
 
-    Attribute: coeff
+    Attribute:
 
-    Method - sample.
+    coeff - a UFL expression for a piecewise constant (scalar- or
+    matrix-valued) coefficient, implemented using Firedrake Constants.
+
+    Method:
+
+    sample - randomly updates coeff by randomly sampling around the known
+    background given by the input argument coeff_pre. Samples have (entrywise)
+    L^\infty norm <= noise_level almost surely.
     """
-
 
     def __init__(self,mesh,num_pieces,noise_level,coeff_pre,coeff_dims):
         """Initialises a piecewise-constant random coefficient, where
@@ -314,7 +327,9 @@ class CoeffGenerator(object):
 
         mesh - a Firedrake mesh object.
 
-        num_pieces - see nearby_preconditioning_test_set.
+        num_pieces - int - the number of `pieces' in each direction for
+        the piecewise-constant coefficients. Emprically must be <= 13,
+        or get a recursion error.
 
         noise_level - positive float - the level of the random noise.
 
@@ -327,13 +342,18 @@ class CoeffGenerator(object):
         valued).
         """
 
-        self._set_coeff_dims(coeff_dims)
+        self._coeff_dims = coeff_dims
+        """Dimension of the coefficient - [1] or [2,2]."""
 
-        self._set_num_pieces(num_pieces)
+        self._num_pieces = num_pieces
+        """Number of pieces in each direction\
+        for random coefficients."""
 
-        self.set_noise_level(noise_level)
+        self._noise_level = noise_level
+        """Magnitude of random noise."""
                                                   
-        self._coeff_initialise(mesh,coeff_pre)
+        self.coeff = self._coeff_initialise(mesh,coeff_pre)
+        """Realisation of random coefficient."""
 
         self.sample()
         
@@ -352,22 +372,6 @@ class CoeffGenerator(object):
         coord_length - int.
         """
         return values_list[x_coord + y_coord * coord_length]
-
-
-    def _symmetrise(self,coeff):
-        """Will 'symmetrise' a 2x2 numpy array by copying the lower
-        left-hand entry into the top right-hand entry. Will leave a 1x1
-        matrix alone.
-
-        Parameters:
-
-        coeff - either a 1x1 or 2x2 numpy array.
-        """
-        if self._coeff_dims == [2,2]:
-            coeff_lower = np.tril(coeff,k=-1)
-            coeff = np.diagflat(np.diagonal(coeff).copy())\
-                    + coeff_lower + np.transpose(coeff_lower)
-        return coeff
 
     def _heaviside(self,x):
         """Defines the heaviside step function in UFL.
@@ -397,8 +401,7 @@ class CoeffGenerator(object):
 
         mesh - a Firedrake mesh.
 
-        coeff_pre - a UFL expression with `dimension' [1] or [2,2]
-        (i.e., a real-valued or 2x2 matrix-valued UFL expression.
+        coeff_pre - see init.
         """
 
         self._coeff_values = []
@@ -416,7 +419,7 @@ class CoeffGenerator(object):
         self._coeff_values = [fd.Constant(coeff_dummy,domain=mesh)
                               for coeff_dummy in self._coeff_values]
 
-        self.coeff = coeff_pre
+        return coeff_pre
         
         # Form coeff by looping over all the subdomains
         x = fd.SpatialCoordinate(mesh)
@@ -432,46 +435,26 @@ class CoeffGenerator(object):
 
     def sample(self):
         """Samples the coefficient coeff."""
-        [coeff_dummy.assign(self._noise_level
-                            * self._symmetrise(2.0 *
-                                               np.random.random_sample(
-                                                   self._coeff_dims) - 1.0))
-         for coeff_dummy in self._coeff_values]
+        [coeff_dummy.assign(self._generate_matrix_coeff()) for coeff_dummy in self._coeff_values]
 
-    def _set_num_pieces(self,num_pieces):
-        """Sets the number of pieces in the coefficients.
+ def _generate_matrix_coeff(self):
+        """Will generate a random float or a 2x2 s.p.d. numpy array.
 
-        Parameters:
+        Floats are Unif(-self._noise_level,self._noise_level), matrices
+        are generated so that the entrtwise L^\infty norm is <=
+        self._noise_level almost surely.
 
-        num_pieces - positive int.
+        For matrices, uses the fact that [[a,b],[b,c]] is
+        positive-definite iff a>0 and b**2 < a*c.
         """
-        self._num_pieces = num_pieces
-
-    def _set_coeff_dims(self,coeff_dims):
-        """Sets the dimensions of the image of the coefficients.
-
-        Parameters:
-
-        coeff_dims - either [1] or [2,2].
-        """
-        self._coeff_dims = coeff_dims
-
-    def set_noise_level(self,noise_level):
-        """Sets the level of random noise in the coefficients.
-
-        Parameters:
-
-        noise_level - positive float.
-        """
-        self._noise_level = noise_level
-
-    def _set_coeff_pre(self,coeff_pre):
-        """Sets the 'centre' of the distribution of the coefficients.
         
-        Parameters:
-
-        coeff_pre - a UFL expression with `dimension' [1] or [2,2]
-        (i.e., a real-valued or 2x2 matrix-valued UFL expression.
-        """
-        self._coeff_pre = coeff_pre
-
+        if self._coeff_dims == [1]:
+            coeff = self._noise_level*(
+                2.0 * np.random.random_sample(self._coeff_dims) - 1.0))
+        elif self._coeff_dims == [2,2]:
+            a = np.random.random_sample(1)
+            c = np.random.random_sample(1)
+            b = np.random.random_sample(np.sqrt(a*c))
+        
+            coeff = self._noise_level * np.array([[a,b],[b,c]])
+        return coeff

@@ -1,11 +1,4 @@
-Testing - plot in paraview
-One written as function, write tests
-Implement matrices in numpy arrays like Jack said/ Figure out how to solve recursion problem
+Write tests
+Once firedrake have fixed bug that meant Julian's approach didn't work, rewrite the piecewise-constant stochastic code
 Figure out whether non-constant on the boundary is an issue
-Check have fully implemented non-constant on boundary - A and n
-Write as function
-Finish different cases
-Fix warnings
 Change mesh_size to make it work in 3-d
-Fix `directory' must have been created
-IMplement - only saves if successful

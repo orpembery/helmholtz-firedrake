@@ -52,7 +52,7 @@ class HelmholtzProblem(object):
         sets the corresponding attribute and re-initialises the problem,
 
         solve - solves the PDE using (preconditioned) GMRES and updates
-        the attirbutes u_h and GMRES_its with the solution and the
+        the attributes u_h and GMRES_its with the solution and the
         number of GMRES iterations, respectively.
     """
 
@@ -139,12 +139,14 @@ class HelmholtzProblem(object):
 
         # Define trial and test functions on the space
         self._u = fd.TrialFunction(self._V)
+
         self._v = fd.TestFunction(self._V)
 
         # Define sesquilinear form and antilinear functional
         self._a = (fd.inner(self._A * fd.grad(self._u), fd.grad(self._v))\
                    - self._k**2 * fd.inner(self._n * self._u,self._v)) * fd.dx\
                    - (1j* self._k * fd.inner(self._u,self._v)) * fd.ds
+
         self._set_L()
         
         self._set_pre()
@@ -157,7 +159,7 @@ class HelmholtzProblem(object):
         
         self._solver = fd.LinearVariationalSolver(
                            problem, solver_parameter = self._solver_parameters)
-
+        
         self._initialised = True
 
     def set_k(self,k):
@@ -270,24 +272,6 @@ class HelmholtzProblem(object):
         self._L =  fd.inner(self._f,self._v)*fd.dx\
                    + fd.inner(self._g,self._v)*fd.ds
 
-   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        
-
 class StochasticHelmholtzProblem(HelmholtzProblem):
     """Defines a stochastic Helmholtz finite-element problem.
 
@@ -318,7 +302,7 @@ class StochasticHelmholtzProblem(HelmholtzProblem):
 
             Methods: sample - randomly updates coeff
 
-            This is specification is implementation-agnostic, but it's
+            This specification is implementation-agnostic, but it's
             best to implement this using Firedrake Constants (so that
             sample() simply assign()s the values of the Constants), as
             then the form doesn't need to be recompiled for each new
@@ -335,7 +319,7 @@ class StochasticHelmholtzProblem(HelmholtzProblem):
             Same comment about implementation as for A_gen holds.
 
         - **kwargs takes a dictionary whose keys are some subset of
-            {A_pre,n_pre,f,g}, where these satisfy the requirements
+            [A_pre,n_pre,f,g], where these satisfy the requirements
             in HelmholtzProblem.
         """
 

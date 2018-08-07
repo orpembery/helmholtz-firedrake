@@ -112,7 +112,7 @@ class HelmholtzProblem(object):
         self.GMRES_its = -1
         """int - number of GMRES iterations. Initialised as -1."""
 
-        self._u_h = fd.Function(self._V)
+        self.u_h = fd.Function(self._V)
         """Firedrake function - initialised as zero function."""
 
     def solve(self):
@@ -233,7 +233,7 @@ class HelmholtzProblem(object):
         """
 
 
-        if self._A_pre == None and self._n_pre == None:
+        if self._A_pre == None or self._n_pre == None:
             self._a_pre = None
             self._solver_parameters={"ksp_type": "gmres",
                                      "mat_type": "aij",

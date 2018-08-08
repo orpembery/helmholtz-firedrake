@@ -1,5 +1,5 @@
 import firedrake as fd
-import helmholtz_firedrake as hh
+import helmholtz.problems as hh
 import numpy as np
 import subprocess
 import datetime
@@ -52,8 +52,8 @@ def nearby_preconditioning_test(V,k,A_pre,A_stoch,n_pre,n_stoch,f,g,
         try:
             prob.solve()
         except RecursionError:
-            print("Suffered a Python RecursionError.\n
-            Have you specified something using a big loop in UFL?\n
+            print("Suffered a Python RecursionError.\
+            Have you specified something using a big loop in UFL?\
             Aborting all further solves.")
             break
             
@@ -67,7 +67,7 @@ def nearby_preconditioning_test_set(
         A_pre_type,n_pre_type,num_pieces,seed,num_repeats,
         k_list,h_list,noise_master_level_list,noise_modifier_list,
         save_location):
-    """Does nearby preconditioning tests for a range of parameter values.
+    """Test nearby preconditioning for a range of parameter values.
 
     Performs nearby preconditioning tests for a range of values of k,
     the mesh size h, and the size of the random noise (which can be
@@ -81,7 +81,7 @@ def nearby_preconditioning_test_set(
 
     n_pre_type - string - options are 'constant', giving n_pre = 1.0.
 
-    num_pieces - see CoeffGenerator.
+    num_pieces - see PieceWiseConstantCoeffGenerator.
 
     seed - see StochasticHelmholtzProblem.
 
@@ -136,7 +136,7 @@ def nearby_preconditioning_test_set(
         raise hh.UserInputError("Input h_list should be a list of tuples.")
     elif any(len(h_tuple) is not 2 for h_tuple in h_list):
         raise hh.UserInputError("Input h_list should be a list of 2-tuples.")
-    elif any(not(isinstance(h_tuple[0],float)) for h_tuple in h_list)
+    elif any(not(isinstance(h_tuple[0],float)) for h_tuple in h_list)\
              or any(h_tuple[0] <= 0 for h_tuple in h_list):
         raise hh.UserInputError(
             "The first item of every tuple in h_list\
@@ -208,9 +208,9 @@ def nearby_preconditioning_test_set(
                     n_modifier = h ** modifier[2] * k**modifier[3]
                     A_noise_level = A_noise_master * A_modifier
                     n_noise_level = n_noise_master * n_modifier
-                    A_stoch = CoeffGenerator(
+                    A_stoch = PieceWiseConstantCoeffGenerator(
                         mesh,num_pieces,A_noise_level,A_pre,[2,2])
-                    n_stoch = CoeffGenerator(
+                    n_stoch = PieceWiseConstantCoeffGenerator(
                         mesh,num_pieces,n_noise_level,n_pre,[1])
                     np.random.seed(seed)
                     
@@ -297,7 +297,7 @@ def write_GMRES_its(GMRES_its,k,h_tuple,num_pieces,A_pre_type,n_pre_type,
         for ii in range(len(GMRES_its)):
             file_writer.writerow([ii,GMRES_its[ii]])
 
-class CoeffGenerator(object):
+class PiecewiseConstantCoeffGenerator(object):
     """Does the work of A_stoch and n_stoch in
     StochasticHelmholtzProblem for the case of piecewise continuous on
     some grid.
@@ -313,9 +313,9 @@ class CoeffGenerator(object):
 
     Method:
 
-    sample - randomly updates coeff by randomly sampling around the known
-    background given by the input argument coeff_pre. Samples have (entrywise)
-    L^\infty norm <= noise_level almost surely.
+    sample - randomly updates coeff by randomly sampling around the
+    known background given by the input argument coeff_pre. Samples have
+    (entrywise) L^\infty norm <= noise_level almost surely.
     """
 
     def __init__(self,mesh,num_pieces,noise_level,coeff_pre,coeff_dims):
@@ -435,9 +435,10 @@ class CoeffGenerator(object):
 
     def sample(self):
         """Samples the coefficient coeff."""
-        [coeff_dummy.assign(self._generate_matrix_coeff()) for coeff_dummy in self._coeff_values]
+        [coeff_dummy.assign(self._generate_matrix_coeff())
+         for coeff_dummy in self._coeff_values]
 
- def _generate_matrix_coeff(self):
+    def _generate_matrix_coeff(self):
         """Will generate a random float or a 2x2 s.p.d. numpy array.
 
         Floats are Unif(-self._noise_level,self._noise_level), matrices
@@ -447,14 +448,14 @@ class CoeffGenerator(object):
         For matrices, uses the fact that [[a,b],[b,c]] is
         positive-definite iff a>0 and b**2 < a*c.
         """
-        
+
         if self._coeff_dims == [1]:
             coeff = self._noise_level*(
-                2.0 * np.random.random_sample(self._coeff_dims) - 1.0))
+                2.0 * np.random.random_sample(self._coeff_dims) - 1.0)
         elif self._coeff_dims == [2,2]:
             a = np.random.random_sample(1)
             c = np.random.random_sample(1)
             b = np.random.random_sample(np.sqrt(a*c))
-        
+
             coeff = self._noise_level * np.array([[a,b],[b,c]])
         return coeff

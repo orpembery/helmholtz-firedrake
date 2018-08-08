@@ -1,0 +1,72 @@
+Owen Pembery [10:56 AM]
+I currently have this code, but I want to put it in a loop so that I solve for lots of different `a`.Will this compute the LU factorisation of `P_mat` each time, or does it get cached?
+Untitled 
+
+parameters = {'ksp_type': 'gmres', 
+
+       'pc_type': 'lu', 
+
+       'ksp_norm_type': 'unpreconditioned'}
+
+​
+
+A_mat = assemble(a, mat_type = 'aij') 
+
+​
+
+P_mat = assemble(a_pre, mat_type = 'aij') 
+
+​
+
+solver = LinearSolver(A_mat,P=P_mat, solver_parameters = parameters)
+
+Lawrence Mitchell [11:10 AM]
+if you make the solver in the loop, then it will recompute the factorisation
+does `a` change because the form is different, or because the values used change?
+Owen Pembery [11:13 AM]
+`a` changes because the coefficients of the PDE change (but not the PDE nor the discretisation) (edited)
+Lawrence Mitchell [11:24 AM]
+OK, so I would write:
+
+```problem = LinearVariationalProblem(a, L, u, aP=a_pre, constant_jacobian=False)
+solver = LinearVariationalSolver(problem, solver_parameters={"ksp_type": "gmres",
+    "pc_type": "lu"})
+for i in range(...):
+    solver.solve()```
+
+Do the coefficients in `a_pre` change?
+or only `a`?
+Owen Pembery [11:27 AM]
+only `a`
+Lawrence Mitchell [11:28 AM]
+OK, so you don't need to redo the factorisation
+And how many iterations do you typically take?
+Perhaps this?
+
+```problem = LinearVariationalProblem(a, L, u, aP=a_pre, constant_jacobian=False)
+solver = LinearVariationalSolver(problem, solver_parameters={"ksp_type": "gmres",
+                                                             "mat_type": "aij",  # could use "matfree" if only doing a few iterations
+                                                             "pmat_type": "aij",
+                                                             "snes_lag_preconditioner": -1,
+                                                             "pc_type": "lu",
+                                                             "ksp_reuse_preconditioner": True})
+
+for i in range(_):
+    solver.solve()```
+
+this tells firedrake that the jacobian changes each time you do a solve
+but that the preconditioner doesn't change, and therefore the krylov solver should just build the preconditioner the first time
+Owen Pembery [11:39 AM]
+Iteration counts vary (it's nasty Helmholtz, and number of iterations blows up with increasing `k`, and no. dofs increases like `k^3` in 2D). With `k=40` you get 64000 dofs and 75 iterations with the problem I'm currently working on.I'd hope to choose the preconditioner so that the number of iterations remains below ~100 (edited)
+And thanks for the code
+Although why would matrix-free only be beneficial if you were doing a few iterations?
+Miklós Homolya [11:51 AM]
+many iterations amortise the cost of matrix assembly
+matrix-free action is generally slower than matvec with an already assembled matrix, but there are exceptions, such as high-order problems with sum factorisation (edited)
+Owen Pembery [11:57 AM]
+Ah, thanks
+Robert Kirby [2:02 PM]
+@orpembery You also can win with matrix-free in Firedrake if your preconditioner needs some extra information about the problem not accessible from the aij matrix.  One thing that would be fun to try is the shifted Laplacian -- essentially, you precondition the Helmholtz operator by one with a different (more imaginary) wave number.  You hit the new operator with multigrid of some flavor and use that as a PC for the original problem.  In that case, you don't need to assemble the original A (but can if you want) and wouldn't need to assemble P if you were feeding it to geometric (rather than algebraic) multigrid.
+But IIRC there were some overhanging fixes that need to be made for GMG on the complex branch (e.g. hardwired dtypes).  GAMG would be fine to get started with.
+Owen Pembery [2:25 PM]
+That's helpful to know - I might try that kind of thing a bit further down the line when I get on to some serious UQ. For now, we're trying to confirm some theory we've got about how well one Helmholtz problem (with heterogeneous coefficients) will precondition another.

@@ -1,10 +1,11 @@
-import helmholtz_firedrake as hh
+import helmholtz.problems as hh
 import firedrake as fd
+import numpy as np
 
 def test_HelmholtzProblem_init_simple():
     """Test a simple setup."""
     mesh = fd.UnitSquareMesh(100,100)
-    V = FunctionSpace(mesh, "CG", 1)
+    V = fd.FunctionSpace(mesh, "CG", 1)
     k = 20.0
     A = fd.as_matrix([[0.9,0.2],[0.2,0.8]])
     n = 1.1
@@ -14,15 +15,21 @@ def test_HelmholtzProblem_init_simple():
     g = 1.1
     prob = hh.HelmholtzProblem(k,V,A=A,n=n,A_pre=A_pre,n_pre=n_pre,f=f,g=g)
 
-    assert [
-        prob._k,prob._V,prob._A,prob._n,prob._A_pre,prob._n_pre,
-        prob._f,prob._g,prob.GMRES_its,prob._u_h.vector().sum()]
-    == [k,V,A,n,A_pre,n_pre,f,g,-1,0.0]
+    assert prob._k == k
+    assert prob._V == V
+    assert prob._A == A
+    assert prob._n == n
+    assert prob._A_pre == A_pre
+    assert prob._n_pre == n_pre
+    assert prob._f == f
+    assert prob._g == g
+    assert prob.GMRES_its == -1
+    assert prob.u_h.vector().sum() == 0.0
 
 def test_HelmholtzProblem_init_f_zero():
     """Test a simple setup with f = 0."""
     mesh = fd.UnitSquareMesh(100,100)
-    V = FunctionSpace(mesh, "CG", 1)
+    V = fd.FunctionSpace(mesh, "CG", 1)
     k = 20.0
     A = fd.as_matrix([[0.9,0.2],[0.2,0.8]])
     n = 1.1
@@ -32,14 +39,22 @@ def test_HelmholtzProblem_init_f_zero():
     g = 1.1
     prob = hh.HelmholtzProblem(k,V,A=A,n=n,A_pre=A_pre,n_pre=n_pre,f=f,g=g)
 
-    assert [prob._k,prob._V,prob._A,prob._n,prob._A_pre,prob._n_pre,
-            prob._f,prob._g,prob.GMRES_its,prob._u_h.vector().sum()]
-    == [k,V,A,n,A_pre,n_pre,f,g,-1,0.0]
+    assert prob._k == k
+    assert prob._V == V
+    assert prob._A == A
+    assert prob._n == n
+    assert prob._A_pre == A_pre
+    assert prob._n_pre == n_pre
+    # Currently not testing f, as the code sets f = x[0]-x[0], as that
+    # doesn't crash Firedrake
+    assert prob._g == g
+    assert prob.GMRES_its == -1
+    assert prob.u_h.vector().sum() == 0.0
 
 def test_HelmholtzProblem_init_g_zero():
     """Test a simple setup with g = 0."""
     mesh = fd.UnitSquareMesh(100,100)
-    V = FunctionSpace(mesh, "CG", 1)
+    V = fd.FunctionSpace(mesh, "CG", 1)
     k = 20.0
     A = fd.as_matrix([[0.9,0.2],[0.2,0.8]])
     n = 1.1
@@ -49,14 +64,22 @@ def test_HelmholtzProblem_init_g_zero():
     g = 0.0
     prob = hh.HelmholtzProblem(k,V,A=A,n=n,A_pre=A_pre,n_pre=n_pre,f=f,g=g)
 
-    assert [prob._k,prob._V,prob._A,prob._n,prob._A_pre,prob._n_pre,
-            prob._f,prob._g,prob.GMRES_its,prob._u_h.vector().sum()]
-    == [k,V,A,n,A_pre,n_pre,f,g,-1,0.0]
+    assert prob._k == k
+    assert prob._V == V
+    assert prob._A == A
+    assert prob._n == n
+    assert prob._A_pre == A_pre
+    assert prob._n_pre == n_pre
+    assert prob._f == f
+    # Currently not testing g, as the code sets g = x[0]-x[0], as that
+    # doesn't crash Firedrake
+    assert prob.GMRES_its == -1
+    assert prob.u_h.vector().sum() == 0.0
 
 def test_HelmholtzProblem_init_f_g_zero():
     """Test a simple setup with f = g = 0."""
     mesh = fd.UnitSquareMesh(100,100)
-    V = FunctionSpace(mesh, "CG", 1)
+    V = fd.FunctionSpace(mesh, "CG", 1)
     k = 20.0
     A = fd.as_matrix([[0.9,0.2],[0.2,0.8]])
     n = 1.1
@@ -66,93 +89,121 @@ def test_HelmholtzProblem_init_f_g_zero():
     g = 0.0
     prob = hh.HelmholtzProblem(k,V,A=A,n=n,A_pre=A_pre,n_pre=n_pre,f=f,g=g)
 
-    assert [prob._k,prob._V,prob._A,prob._n,prob._A_pre,prob._n_pre
-            ,prob._f,prob._g,prob.GMRES_its,prob._u_h.vector().sum()]
-    == [k,V,A,n,A_pre,n_pre,f,g,-1,0.0]
+    assert prob._k == k
+    assert prob._V == V
+    assert prob._A == A
+    assert prob._n == n
+    assert prob._A_pre == A_pre
+    assert prob._n_pre == n_pre
+    # Currently not testing f and g, as the code sets f = g = x[0]-x[0],
+    # as that doesn't crash Firedrake
+    assert prob.GMRES_its == -1
+    assert prob.u_h.vector().sum() == 0.0
 
-def test_HelmholtzProblem_init_f_g_zero():
+def test_HelmholtzProblem_init_no_pc():
     """Test a simple setup with no preconditioner."""
     mesh = fd.UnitSquareMesh(100,100)
-    V = FunctionSpace(mesh, "CG", 1)
+    V = fd.FunctionSpace(mesh, "CG", 1)
     k = 20.0
     A = fd.as_matrix([[0.9,0.2],[0.2,0.8]])
     n = 1.1
     A_pre = None
     n_pre = None
-    f = 0.0
-    g = 0.0
+    f = 1.0
+    g = 1.0
     prob = hh.HelmholtzProblem(k,V,A=A,n=n,A_pre=A_pre,n_pre=n_pre,f=f,g=g)
 
-    assert [prob._k,prob._V,prob._A,prob._n,prob._A_pre,prob._n_pre
-            ,prob._f,prob._g,prob.GMRES_its,prob._u_h.vector().sum()]
-    == [k,V,A,n,A_pre,n_pre,f,g,-1,0.0]
+    assert prob._k == k
+    assert prob._V == V
+    assert prob._A == A
+    assert prob._n == n
+    assert prob._A_pre == A_pre
+    assert prob._n_pre == n_pre
+    assert prob._f == f
+    assert prob._g == g
+    assert prob.GMRES_its == -1
+    assert prob.u_h.vector().sum() == 0.0
 
-def test_HelmholtzProblem_init_f_g_zero():
-    """Test a simple setup with only one preconditioning coeff as None."""
+def test_HelmholtzProblem_init_one_pc_none():
+    """Test a simple setup with one preconditioning coeff as None."""
     mesh = fd.UnitSquareMesh(100,100)
-    V = FunctionSpace(mesh, "CG", 1)
+    V = fd.FunctionSpace(mesh, "CG", 1)
     k = 20.0
     A = fd.as_matrix([[0.9,0.2],[0.2,0.8]])
     n = 1.1
     A_pre = None
     n_pre = 1.0
-    f = 0.0
-    g = 0.0
+    f = 1.0
+    g = 1.0
     prob = hh.HelmholtzProblem(k,V,A=A,n=n,A_pre=A_pre,n_pre=n_pre,f=f,g=g)
 
-    assert [prob._k,prob._V,prob._A,prob._n,prob._a_pre,
-            prob._f,prob._g,prob.GMRES_its,prob._u_h.vector().sum()]
-    == [k,V,A,n,None,f,g,-1,0.0]
+    prob._initialise_problem()
 
-# heterogeneous A,n,A_pre,n_pre,f,g - maybe?
+    assert prob._k == k
+    assert prob._V == V
+    assert prob._A == A
+    assert prob._n == n
+    assert prob._a_pre == None
+    assert prob._f == f
+    assert prob._g == g
+    assert prob.GMRES_its == -1
+    assert prob.u_h.vector().sum() == 0.0
     
-# test solve - multiple k and h?-------------------------------------------------
-
-def test_HelmholtzProblem_solver_convergence():
+  
+def not_test_HelmholtzProblem_solver_convergence(): # `Commented out' as it takes a while
     """Test that the solver is converging at the correct rate."""
-    k_range = [20.0,40.0]
+    k_range = [10.0,12.0,20.0,30.0,40.0]#[10.0,12.0]#[20.0,40.0]
     num_levels = 2
     tolerance = 0.05
-    
-    err_L2 = numpy.empty((len(k_range),num_levels))
-    err_H1 = numpy.empty((len(k_range),num_levels))
+    log_err_L2 = np.empty((num_levels,len(k_range)))
+    log_err_H1 = np.empty((num_levels,len(k_range)))
 
-    fit_L2 = np.empty(len(k_range))
-    fit_H1 = np.empty(len(k_range))
-    
     for ii_k in range(len(k_range)):
-        k = k_range(ii_k)
-        num_points = np.ceil(np.sqrt(2.0) * k**(1.5)) * 2.0**arange(float(num_levels))
-        for ii_points in range(num_levels):
+        k = k_range[ii_k]
+        print(k)
+        num_points = np.ceil(np.sqrt(2.0) * k**(1.5)) * 2.0**np.arange(float(num_levels))
 
+        log_h = np.log(np.sqrt(2.0) * 1.0 / num_points)
+        for ii_points in range(num_levels):
+            print(ii_points)
             # Coarsest grid has h ~ k^{-1.5}, and then do uniform refinement
             mesh = fd.UnitSquareMesh(num_points[ii_points],num_points[ii_points])
-            V = FunctionSpace(mesh, "CG", 1)
+            V = fd.FunctionSpace(mesh, "CG", 1)
 
-            # True solution is a plane wave
             x = fd.SpatialCoordinate(mesh)
             nu = fd.FacetNormal(mesh)
+            d = fd.as_vector([1.0/np.sqrt(2.0),1.0/np.sqrt(2.0)])
             exact_soln = fd.exp(1j * k * fd.dot(x,d))
             f = 0.0
-            g = 1j*k*exp(1j*k*dot(x,d))*(dot(d,nu)-1)
+            g = 1j*k*fd.exp(1j*k*fd.dot(x,d))*(fd.dot(d,nu)-1)
 
             prob = hh.HelmholtzProblem(k,V,f=f,g=g)
-            
+
             prob.solve()
-            
-            err_L2[ii_k,ii_points] = fd.norms.errornorm(exact_soln,prob.u_h,type="L2")
-            err_H1[ii_k,ii_points] = fd.norms.errornorm(exact_soln,prob.u_h,type="H1")
 
-            h = np.sqrt(2.0) * 1.0 / num_points
+            log_err_L2[ii_points,ii_k] = np.log(fd.norms.errornorm(exact_soln,prob.u_h,norm_type="L2"))
+            log_err_H1[ii_points,ii_k] = np.log(fd.norms.errornorm(exact_soln,prob.u_h,norm_type="H1"))
 
-            fit_L2[ii_k] = np.polyfit(h,err_L2,deg=1)[0]
+        #plt.plot(log_h,log_err_L2[:,ii_k])
 
-            fit_H1[ii_k] = np.polyfit(h,err_H1,deg=1)[0]
+        #plt.plot(log_h,log_err_H1[:,ii_k])
 
-    assert all(abs(fit_L2 - 2.0) <= tolerance) and all(abs(fit_H1 - 1.0) <= tolerance)
+        #plt.show()
+
+        fit_L2 = np.polyfit(log_h,log_err_L2[:,ii_k],deg=1)[0]
+
+        fit_H1 = np.polyfit(log_h,log_err_H1[:,ii_k],deg=1)[0]
+
+        print(fit_L2)
+
+        print(fit_H1)
+
+        assert abs(fit_L2 - 2.0) <= tolerance
+
+        assert abs(fit_H1 - 1.0) <= tolerance
                 
 def test_HelmholtzProblem_solver_exact_pc():
-    """Test that solver converges in 1 GMREs iteration with exact preconditioner."""
+    """Test solver converges in 1 GMRES iteration with exact precon.."""
 
     k = 20.0
     mesh = fd.UnitSquareMesh(100,100)
@@ -162,9 +213,15 @@ def test_HelmholtzProblem_solver_exact_pc():
 
     prob.set_A_pre(prob._A)
 
+    assert prob._A_pre == prob._A
+
     prob.set_n_pre(prob._n)
 
+    assert prob._n_pre == prob._n
+
     prob.solve()
+    
+#    assert prob._a_pre == prob._a
 
     assert prob.GMRES_its == 1
 
@@ -175,24 +232,25 @@ def test_HelmholtzProblem_solver_exact_pc():
 def test_HelmholtzProblem_set_k():
     """Test that set_k assigns and re-initialises."""
     mesh = fd.UnitSquareMesh(100,100)
-    V = FunctionSpace(mesh, "CG", 1)
+    V = fd.FunctionSpace(mesh, "CG", 1)
     k = 20.0
     
     prob = hh.HelmholtzProblem(k,V)
 
     k = 15.0
+
+    prob._initialise_problem()
     
     prob.set_k(k)
 
-    assert [prob._k,prob._a]
-    == [k,(fd.inner(prob._A * fd.grad(prob._u), fd.grad(prob._v))\
-           - k**2 * fd.inner(prob._n * prob._u,prob._v)) * fd.dx\
-        - (1j* prob._k * fd.inner(prob._u,prob._v)) * fd.ds]
-
+    assert prob._k == k
+    # At the moment, not testing that the new form is correct, as I
+    # don't know how to.
+    
 def test_HelmholtzProblem_set_A():
     """Test that set_A assigns and re-initialises."""
     mesh = fd.UnitSquareMesh(100,100)
-    V = FunctionSpace(mesh, "CG", 1)
+    V = fd.FunctionSpace(mesh, "CG", 1)
     k = 20.0
     
     prob = hh.HelmholtzProblem(k,V)
@@ -201,15 +259,14 @@ def test_HelmholtzProblem_set_A():
     
     prob.set_A(A)
 
-    assert [prob._A,prob._a]
-    == [A,(fd.inner(A * fd.grad(prob._u), fd.grad(prob._v))\
-           - prob._k**2 * fd.inner(prob._n * prob._u,prob._v)) * fd.dx\
-        - (1j* prob._k * fd.inner(prob._u,prob._v)) * fd.ds]
+    assert prob._A == A
+    # At the moment, not testing that the new form is correct, as I
+    # don't know how to.
 
 def test_HelmholtzProblem_set_n():
     """Test that set_n assigns and re-initialises."""
     mesh = fd.UnitSquareMesh(100,100)
-    V = FunctionSpace(mesh, "CG", 1)
+    V = fd.FunctionSpace(mesh, "CG", 1)
     k = 20.0
     
     prob = hh.HelmholtzProblem(k,V)
@@ -218,16 +275,14 @@ def test_HelmholtzProblem_set_n():
     
     prob.set_n(n)
 
-    assert [prob._n,prob._a]
-    == [n,(fd.inner(prob._A * fd.grad(prob._u), fd.grad(prob._v))\
-           - prob._k**2 * fd.inner(n * prob._u,prob._v)) * fd.dx\
-        - (1j* prob._k * fd.inner(prob._u,prob._v)) * fd.ds]
-
+    assert prob._n == n
+    # At the moment, not testing that the new form is correct, as I
+    # don't know how to.
 
 def test_HelmholtzProblem_set_pre():
     """Test that set_A_pre and set_n_pre assign and re-initialise."""
     mesh = fd.UnitSquareMesh(100,100)
-    V = FunctionSpace(mesh, "CG", 1)
+    V = fd.FunctionSpace(mesh, "CG", 1)
     k = 20.0
     
     prob = hh.HelmholtzProblem(k,V)
@@ -240,15 +295,14 @@ def test_HelmholtzProblem_set_pre():
 
     prob.set_n_pre(n_pre)
 
-    assert [prob._A_pre,prob._n_pre,prob._solver.problem.JP]
-    == [A_pre,n_pre,(fd.inner(A_pre * fd.grad(prob._u), fd.grad(prob._v))\
-                     - prob._k**2 * fd.inner(n_pre * prob._u,prob._v)) * fd.dx\
-        - (1j* prob._k * fd.inner(prob._u,prob._v)) * fd.ds]
-
+    assert prob._A_pre == A_pre
+    # At the moment, not testing that the new form is correct, as I
+    # don't know how to.
+    
 def test_HelmholtzProblem_set_f():
     """Test that set_f assigns and re-initialises."""
     mesh = fd.UnitSquareMesh(100,100)
-    V = FunctionSpace(mesh, "CG", 1)
+    V = fd.FunctionSpace(mesh, "CG", 1)
     k = 20.0
     
     prob = hh.HelmholtzProblem(k,V)
@@ -257,13 +311,14 @@ def test_HelmholtzProblem_set_f():
     
     prob.set_f(f)
 
-    assert [prob._f,prob._L] == [f,fd.inner(f,prob._v)*fd.dx\
-                   + fd.inner(prob._g,prob._v)*fd.ds]
+    assert prob._f == f
+    # At the moment, not testing that the new rhs is correct, as I
+    # don't know how to.
 
-    def test_HelmholtzProblem_set_g():
+def test_HelmholtzProblem_set_g():
     """Test that set_g assigns and re-initialises."""
     mesh = fd.UnitSquareMesh(100,100)
-    V = FunctionSpace(mesh, "CG", 1)
+    V = fd.FunctionSpace(mesh, "CG", 1)
     k = 20.0
     
     prob = hh.HelmholtzProblem(k,V)
@@ -272,5 +327,64 @@ def test_HelmholtzProblem_set_f():
     
     prob.set_g(g)
 
-    assert [prob._g,prob._L] == [g,fd.inner(prob._f,prob._v)*fd.dx\
-                   + fd.inner(g,prob._v)*fd.ds]
+    assert prob._g == g
+    # At the moment, not testing that the new rhs is correct, as I
+    # don't know how to.
+    
+def test_StochasticHelmholtzProblem_sample():
+    """Test that sample routine works correctly."""
+
+    class DeterministicCoeff(object):
+        """Generates 'random' coefficients in a known way.
+
+        Coefficients are of the type required in
+        StochasticHelmholtzProblem, but matrix-valued coefficients take
+        the values [[1.0,0.0],[0.0,1.0/n]] and scalar-valued
+        coefficients take the value 1.0 = 1.0/n, where n >= 1 is the
+        number of times the coefficient has been sampled.
+        """
+
+        def __init__(self,type):
+            """Initialises testing class."""
+            self._counter = 1
+
+            self._changes = fd.Constant(1.0)
+
+            self._type = type
+
+            if type == "matrix":
+                self.coeff = fd.as_matrix([[1.0,0.0],[0.0,1.0/self._changes]])
+
+            if type == "scalar":
+                self.coeff = 1 + 1.0/self._changes
+
+        def sample(self):
+            """Update coefficient."""
+
+            self._counter += 1
+            
+            self._changes.assign(float(self._counter))
+
+    A_test = DeterministicCoeff("matrix")
+
+    n_test = DeterministicCoeff("scalar")
+
+    k = 20.0
+    
+    mesh = fd.UnitSquareMesh(100,100)
+
+    V = fd.FunctionSpace(mesh, "CG", 1)
+
+    prob = hh.StochasticHelmholtzProblem(k,V,A_test,n_test)
+
+    num_samples = 999
+    
+    for ii in range(num_samples):
+        prob.sample()
+
+    # The following test isn't perfect, but it shows that the `sample'
+    # method for StochasticHelmholtzProblem is calling the `sample'
+    # method of the coefficients correctly. (It doesn't show if the
+    # embedding in the form is correct.)
+    assert n_test._changes.values() == float(num_samples + 1)
+    assert A_test._changes.values() == float(num_samples + 1)

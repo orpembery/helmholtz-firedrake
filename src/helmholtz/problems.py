@@ -24,21 +24,7 @@ class HelmholtzProblem(object):
     (when this happens, the problem must be re-initialised).
 
     Attributes defined:
-
-        k - see parameters of init.
-
-        A - see parameters of init.
-
-        n - see parameters of init.
-
-        A_pre - see parameters of init.
-
-        n_pre - see parameters of init.
-
-        f - see parameters of init.
-
-        g - see parameters of init.
-        
+       
         u_h - a Firedrake Function holding the numerical solution of the
         PDE (equals the zero function if solve() has not been called).
 
@@ -125,11 +111,11 @@ class HelmholtzProblem(object):
 
         if not(self._initialised):
             self._initialise_problem()
-       
+            
         self._solver.solve()
 
         assert isinstance(self._solver.snes.ksp.getIterationNumber(),int)
-        
+       
         self.GMRES_its = self._solver.snes.ksp.getIterationNumber()
 
     def _initialise_problem(self):
@@ -143,10 +129,8 @@ class HelmholtzProblem(object):
         self._v = fd.TestFunction(self._V)
 
         # Define sesquilinear form and antilinear functional
-        self._a = (fd.inner(self._A * fd.grad(self._u), fd.grad(self._v))\
-                   - self._k**2 * fd.inner(self._n * self._u,self._v)) * fd.dx\
-                   - (1j* self._k * fd.inner(self._u,self._v)) * fd.ds
-
+        self._a = self._define_form(self._A,self._n)
+        
         self._set_L()
         
         self._set_pre()
@@ -158,7 +142,7 @@ class HelmholtzProblem(object):
                       aP=self._a_pre, constant_jacobian=False)
         
         self._solver = fd.LinearVariationalSolver(
-                           problem, solver_parameter = self._solver_parameters)
+                           problem, solver_parameters = self._solver_parameters)
         
         self._initialised = True
 
@@ -169,7 +153,14 @@ class HelmholtzProblem(object):
 
         if self._initialised:
             self._initialise_problem()
-        
+
+    def _define_form(self,A,n):
+        """Defines a Helmholtz sesquilinear form."""
+
+        return (fd.inner(A * fd.grad(self._u), fd.grad(self._v))\
+                - self._k**2 * fd.inner(n * self._u,self._v)) * fd.dx\
+                - (1j* self._k * fd.inner(self._u,self._v)) * fd.ds
+                    
     def set_A(self,A):
         """Set the 'diffusion coefficient' A."""
 
@@ -223,10 +214,6 @@ class HelmholtzProblem(object):
         if self._initialised:
             self._initialise_problem()
 
-
-
-
-
     def _set_pre(self):
         """
         Set the preconditioning bilinear form and the solver parameters.
@@ -240,10 +227,7 @@ class HelmholtzProblem(object):
                                      "ksp_norm_type": "unpreconditioned"
                                      }
         else:
-            self._a_pre =\
-                (fd.inner(self._A_pre * fd.grad(self._u),fd.grad(self._v))\
-                - self._k**2 * fd.inner(self._n_pre * self._u,self._v))* fd.dx\
-                - (1j* self._k * fd.inner(self._u,self._v)) * fd.ds
+            self._a_pre = self._define_form(self._A_pre,self._n_pre)
                      
             self._solver_parameters={"ksp_type": "gmres",
                                      "mat_type": "aij",

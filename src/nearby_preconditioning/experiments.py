@@ -328,7 +328,7 @@ class PiecewiseConstantCoeffGenerator(object):
         mesh - a Firedrake mesh object.
 
         num_pieces - int - the number of `pieces' in each direction for
-        the piecewise-constant coefficients. Emprically must be <= 13,
+        the piecewise-constant coefficients. Empirically must be <= 13,
         or get a recursion error.
 
         noise_level - positive float - the level of the random noise.
@@ -352,8 +352,8 @@ class PiecewiseConstantCoeffGenerator(object):
         self._noise_level = noise_level
         """Magnitude of random noise."""
                                                   
-        self.coeff = self._coeff_initialise(mesh,coeff_pre)
-        """Realisation of random coefficient."""
+        self._coeff_initialise(mesh,coeff_pre)
+        """Create realisation of random coefficient."""
 
         self.sample()
         
@@ -418,11 +418,11 @@ class PiecewiseConstantCoeffGenerator(object):
                 
         self._coeff_values = [fd.Constant(coeff_dummy,domain=mesh)
                               for coeff_dummy in self._coeff_values]
-
-        return coeff_pre
         
         # Form coeff by looping over all the subdomains
         x = fd.SpatialCoordinate(mesh)
+
+        self.coeff = coeff_pre
         
         for xii in range(self._num_pieces):
             for yii in range(self._num_pieces):
@@ -442,7 +442,7 @@ class PiecewiseConstantCoeffGenerator(object):
         """Will generate a random float or a 2x2 s.p.d. numpy array.
 
         Floats are Unif(-self._noise_level,self._noise_level), matrices
-        are generated so that the entrtwise L^\infty norm is <=
+        are generated so that the entrywise L^\infty norm is <=
         self._noise_level almost surely.
 
         For matrices, uses the fact that [[a,b],[b,c]] is
@@ -455,7 +455,7 @@ class PiecewiseConstantCoeffGenerator(object):
         elif self._coeff_dims == [2,2]:
             a = np.random.random_sample(1)
             c = np.random.random_sample(1)
-            b = np.random.random_sample(np.sqrt(a*c))
+            b = np.sqrt(a*c) * np.random.random_sample(1)
 
             coeff = self._noise_level * np.array([[a,b],[b,c]])
         return coeff

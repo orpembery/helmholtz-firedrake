@@ -1,5 +1,6 @@
 import firedrake as fd
 import numpy as np
+from matplotlib import pyplot as plt
 
 class HelmholtzProblem(object):
     """Defines a finite-element approximation of a Helmholtz problem.
@@ -94,6 +95,8 @@ class HelmholtzProblem(object):
         self.set_g(g)
 
         self._V = V
+
+        self._solver_params_override = False
 
         self.GMRES_its = -1
         """int - number of GMRES iterations. Initialised as -1."""
@@ -222,21 +225,23 @@ class HelmholtzProblem(object):
 
         if self._A_pre == None or self._n_pre == None:
             self._a_pre = None
-            self._solver_parameters={"ksp_type": "gmres",
-                                     "mat_type": "aij",
-                                     "ksp_norm_type": "unpreconditioned"
-                                     }
+
+            if self._solver_params_override == False:
+                self._solver_parameters={"ksp_type": "gmres",
+                                         "mat_type": "aij",
+                                         "ksp_norm_type": "unpreconditioned"
+                                         }
         else:
             self._a_pre = self._define_form(self._A_pre,self._n_pre)
-                     
-            self._solver_parameters={"ksp_type": "gmres",
-                                     "mat_type": "aij",
-                                     "pmat_type": "aij",
-                                     "snes_lag_preconditioner": -1,
-                                     "pc_type": "lu",
-                                     "ksp_reuse_preconditioner": True,
-                                     "ksp_norm_type": "unpreconditioned"
-                                     } 
+            if self._solver_params_override == False:                     
+                self._solver_parameters={"ksp_type": "gmres",
+                                         "mat_type": "aij",
+                                         "pmat_type": "aij",
+                                         "snes_lag_preconditioner": -1,
+                                         "pc_type": "lu",
+                                         "ksp_reuse_preconditioner": True,
+                                         "ksp_norm_type": "unpreconditioned"
+                                         } 
         
     def _set_L(self):
         """Set the right-hand side of the weak form.
@@ -256,10 +261,50 @@ class HelmholtzProblem(object):
         self._L =  fd.inner(self._f,self._v)*fd.dx\
                    + fd.inner(self._g,self._v)*fd.ds
 
+    def plot(self):
+        """Plots the finite-element solution."""
+
+        fd.plot(self.u_h,num_sample_points=1)
+
+        plt.show()
+
+    def f_g_plane_wave(self,
+                       d=fd.as_vector([1.0/np.sqrt(2.0),1.0/np.sqrt(2.0)])):
+        """Sets f and g to correspond to a plane wave"""
+
+        self.set_f(0.0)
+
+        x = fd.SpatialCoordinate(self._V.mesh())
+
+        nu = fd.FacetNormal(self._V.mesh())
+        
+        self.set_g(1j*self._k*fd.exp(1j*self._k*fd.dot(x,d))\
+                   *(fd.dot(d,nu)-1.0))
+
+    def force_lu(self):
+        """Forces the use of an direct LU solver for each solve."""
+
+        self._solver_params_override = True
+
+        self._solver_parameters={"ksp_type": "preonly",
+                                 "pc_type": "lu"
+                                 }
+
+    def unforce_lu(self):
+        """Replaces Lu solver with default."""
+
+        self._solver_params_override = False
+
+        self._set_pre()
+
+        
+        
+
 class StochasticHelmholtzProblem(HelmholtzProblem):
     """Defines a stochastic Helmholtz finite-element problem.
 
-    All attributes and methods are as in HelmholtzProblem, except for the following additions:
+    All attributes and methods are as in HelmholtzProblem, except for
+    the following additions:
 
     Attributes:
 
@@ -287,7 +332,7 @@ class StochasticHelmholtzProblem(HelmholtzProblem):
             Methods: sample - randomly updates coeff
 
             This specification is implementation-agnostic, but it's
-            best to implement this using Firedrake Constants (so that
+           best to implement this using Firedrake Constants (so that
             sample() simply assign()s the values of the Constants), as
             then the form doesn't need to be recompiled for each new
             realisation.

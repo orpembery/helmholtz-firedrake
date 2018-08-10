@@ -459,3 +459,46 @@ class PiecewiseConstantCoeffGenerator(object):
 
             coeff = self._noise_level * np.array([[a,b],[b,c]])
         return coeff
+
+
+class ExponentialConstantCoeffGenerator(object):
+    """Does the work of n_stoch in StochasticHelmholtzProblem for the
+    case of a constant but exponentially distributed refractive index.
+
+    Attribute:
+
+    coeff - a Firedrake Constant containing the value of the
+    scalar-valued coefficients.
+
+    Method:
+
+    sample - randomly updates coeff by randomly sampling from coeff_base
+    + exponential(rate).
+    """
+
+    def __init__(self,mesh,rate,coeff_pre):
+        """Initialises a constant, exponentially-distributed constant.
+
+        Parameters:
+
+        mesh - a Firedrake mesh object.
+
+        rate - the rate of the exponential distribution (commonly called
+        lambda). The mean of the distribution is 1/rate.
+
+        coeff_base - the lower bound for the coefficient.
+        """
+
+        self._coeff_rand = fd.Constant(0.0)
+
+        self.coeff = coeff_base + self._coeff_rand
+        """Spatially homogeneous, but random coefficient."""
+
+        self._rate = rate
+        
+        self.sample()
+
+    def sample(self):
+        """Samples the exponentially-distributed coefficient coeff."""
+
+        self._coeff_rand.assign(np.random.exponential(1.0/self._rate))

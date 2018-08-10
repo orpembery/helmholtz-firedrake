@@ -388,3 +388,37 @@ def test_StochasticHelmholtzProblem_sample():
     # embedding in the form is correct.)
     assert n_test._changes.values() == float(num_samples + 1)
     assert A_test._changes.values() == float(num_samples + 1)
+
+def test_force_solver_params():
+    """Test that forcing an LU solver works."""
+
+    mesh = fd.UnitSquareMesh(100,100)
+
+    V = fd.FunctionSpace(mesh,"CG",1)
+    
+    k = 20.0
+
+    prob = hh.HelmholtzProblem(k,V)
+
+    prob.force_lu()
+
+    assert prob._solver_parameters["ksp_type"] == "preonly"
+
+    assert prob._solver_parameters["pc_type"] == "lu"
+
+def test_force_solver_params():
+    """Test that 'unforcing' an LU solver works."""
+
+    mesh = fd.UnitSquareMesh(100,100)
+
+    V = fd.FunctionSpace(mesh,"CG",1)
+    
+    k = 20.0
+
+    prob = hh.HelmholtzProblem(k,V)
+
+    prob.force_lu()
+
+    prob.unforce_lu()
+
+    assert prob._solver_parameters["ksp_type"] != "preonly"

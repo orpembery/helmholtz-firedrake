@@ -64,7 +64,7 @@ def nearby_preconditioning_test(V,k,A_pre,A_stoch,n_pre,n_stoch,f,g,
 
     return all_GMRES_its
 
-def nearby_preconditioning_test_set(
+def nearby_preconditioning_piecewise_test_set(
         A_pre_type,n_pre_type,num_pieces,seed,num_repeats,
         k_list,h_list,noise_master_level_list,noise_modifier_list,
         save_location):
@@ -478,9 +478,9 @@ class PiecewiseConstantCoeffGenerator(object):
         return coeff
 
 
-class ExponentialConstantCoeffGenerator(object):
+class GammaConstantCoeffGenerator(object):
     """Does the work of n_stoch in StochasticHelmholtzProblem for the
-    case of a constant but exponentially distributed refractive index.
+    case of a constant but gamma-distributed refractive index.
 
     Attribute:
 
@@ -490,32 +490,54 @@ class ExponentialConstantCoeffGenerator(object):
     Method:
 
     sample - randomly updates coeff by randomly sampling from coeff_base
-    + exponential(rate).
+    + gamma(rate).
     """
 
-    def __init__(self,mesh,rate,coeff_pre):
-        """Initialises a constant, exponentially-distributed constant.
+    def __init__(self,shape,scale,coeff_pre):
+        """Initialises a constant, gamma-distributed constant.
 
         Parameters:
 
-        mesh - a Firedrake mesh object.
+        shape - the shape of the gamma distribution (commonly called k).
 
-        rate - the rate of the exponential distribution (commonly called
-        lambda). The mean of the distribution is 1/rate.
+        scale - the scale of the gamma distribution (commonly
+        called theta).
 
         coeff_base - the lower bound for the coefficient.
+
+        The mean of the gamma distribution is shape * scale and the
+        variance is shape * scale**2.
         """
 
         self._coeff_rand = fd.Constant(0.0)
 
-        self.coeff = coeff_base + self._coeff_rand
+        self._coeff_base = coeff_base
+
+        self.coeff = self._coeff_base + self._coeff_rand
         """Spatially homogeneous, but random coefficient."""
 
-        self._rate = rate
+        self._shape = shape
+        
+        self._scale = scale
         
         self.sample()
 
     def sample(self):
         """Samples the exponentially-distributed coefficient coeff."""
 
-        self._coeff_rand.assign(np.random.exponential(1.0/self._rate))
+        self._coeff_rand.assign(np.random.gamma(self._shape,self._scale))
+
+def nearby_preconditioning_test_gamma(V,k,n_lower_bound,num_repeats):
+    """Tests the effectiveness of nearby preconditioning for a homogeneous but gamma-distributed random refractive index.
+
+    This is an initial version - it holds the mean of the refractive index constant =1, but then changes the variance of the refractive index.
+    """
+
+    # need to add in a loop (and a loop over k?) now
+    
+    n_stoch = GammaConstantCoeffGenerator(shape,scale,coeff_pre)
+    
+    GMRES_its = nearby_preconditioning_test(V,k,A_pre=None,A_stoch=None,
+                                            n_pre=n_stoch._coeff_base,
+                                            n_stoch=n_stoch,f=0.0,g=1.0,
+                                            num_repeats=num_repeats)

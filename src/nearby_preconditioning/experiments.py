@@ -4,6 +4,7 @@ import numpy as np
 import subprocess
 import datetime
 import csv
+import warnings
 
 def nearby_preconditioning_test(V,k,A_pre,A_stoch,n_pre,n_stoch,f,g,
                                 num_repeats):
@@ -411,6 +412,13 @@ class PiecewiseConstantCoeffGenerator(object):
         coeff_pre - see init.
         """
 
+        if self._coeff_dims == [2,2]\
+                and coeff_pre != fd.as_matrix([[1.0,0.0],[0.0,1.0]]):
+
+            warnings.warn("coeff_pre is not the identity. There is not
+            guarantee that the randomly-generated matrices are
+            positive-definite, or have the correct amount of noise.")
+        
         self._coeff_values = []
         
         for ii in range(self._num_pieces**2):

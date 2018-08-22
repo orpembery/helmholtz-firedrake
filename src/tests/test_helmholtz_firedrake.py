@@ -1,6 +1,7 @@
 import helmholtz.problems as hh
 import firedrake as fd
 import numpy as np
+import pytest
 
 def test_HelmholtzProblem_init_simple():
     """Test a simple setup."""
@@ -149,8 +150,8 @@ def test_HelmholtzProblem_init_one_pc_none():
     assert prob.GMRES_its == -1
     assert prob.u_h.vector().sum() == 0.0
     
-  
-def not_test_HelmholtzProblem_solver_convergence(): # `Commented out' as it takes a while
+@pytest.mark.slow  
+def test_HelmholtzProblem_solver_convergence():
     """Test that the solver is converging at the correct rate."""
     k_range = [10.0,12.0,20.0,30.0,40.0]#[10.0,12.0]#[20.0,40.0]
     num_levels = 2

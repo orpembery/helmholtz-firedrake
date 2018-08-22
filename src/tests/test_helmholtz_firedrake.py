@@ -2,6 +2,7 @@ import helmholtz.problems as hh
 import firedrake as fd
 import numpy as np
 import pytest
+from nearby_preconditioning.experiments import PiecewiseConstantCoeffGenerator
 
 def test_HelmholtzProblem_init_simple():
     """Test a simple setup."""
@@ -423,3 +424,30 @@ def test_force_solver_params():
     prob.unforce_lu()
 
     assert prob._solver_parameters["ksp_type"] != "preonly"
+
+def test_A_stoch_none():
+    """Test that setting not setting A_stoch doesn't misbehave."""
+
+    k = 10.0
+
+    mesh = fd.UnitSquareMesh(100,100)
+
+    V = fd.FunctionSpace(mesh, "CG", 1)
+
+    n_stoch = PiecewiseConstantCoeffGenerator(mesh,2,0.1,1.0,[1])
+
+    prob = hh.StochasticHelmholtzProblem(k,V,n_stoch=n_stoch)
+
+def test_n_stoch_none():
+    """Test that not setting n_stoch doesn't misbehave."""
+
+    k = 10.0
+
+    mesh = fd.UnitSquareMesh(100,100)
+
+    V = fd.FunctionSpace(mesh, "CG", 1)
+
+    A_stoch = PiecewiseConstantCoeffGenerator(
+        mesh,2,0.1,fd.as_matrix([[1.0,0.0],[0.0,1.0]]),[2,2])
+
+    prob = hh.StochasticHelmholtzProblem(k,V,A_stoch=A_stoch)

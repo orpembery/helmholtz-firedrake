@@ -132,7 +132,9 @@ def test_coeff_size():
                 == ()
     
 def test_matrices_spd():
-    """Tests that the matrices are spd, using Sylvester's criterion."""
+    """Tests that the matrices are spd, using Sylvester's criterion.
+
+    Only works for the case coeff_pre = I."""
 
     mesh = fd.UnitSquareMesh(100,100)
     V = fd.FunctionSpace(mesh, "CG", 1)
@@ -153,8 +155,44 @@ def test_matrices_spd():
             assert A_stoch._coeff_values[jj].evaluate(None,None,(),None)[1,0]\
                 == A_stoch._coeff_values[jj].evaluate(None,None,(),None)[0,1]
             
-            assert A_stoch._coeff_values[jj].evaluate(None,None,(),None)[0,0]\
+            assert 1.0 +\
+                A_stoch._coeff_values[jj].evaluate(None,None,(),None)[0,0]\
                 > 0.0
             
-            assert np.linalg.det(A_stoch._coeff_values[jj].\
-                                 evaluate(None,None,(),None)) > 0.0
+            assert np.linalg.det(np.array([[1.0,0.0],[0.0,1.0]])\
+                                 + A_stoch._coeff_values[jj].\
+                                 evaluate(None,None,(),None))\
+                                 > 0.0
+
+def test_matrices_noise_level():
+    """Tests that the matrices have correct noise_level.
+
+    Only works for the case coeff_pre = I."""
+
+    mesh = fd.UnitSquareMesh(100,100)
+    V = fd.FunctionSpace(mesh, "CG", 1)
+
+    num_pieces = 12
+    noise_level = 0.1
+    num_repeats = 100
+    
+    A_pre = fd.as_matrix(np.array([[1.0,0.0],[0.0,1.0]]))
+    A_stoch = nbex.PiecewiseConstantCoeffGenerator(mesh,num_pieces,
+                                                   noise_level,A_pre,[2,2])
+
+    for ii in range(num_repeats):
+        A_stoch.sample()
+
+        for jj in range(num_pieces**2):
+
+            assert abs(A_stoch._coeff_values[jj]\
+                       .evaluate(None,None,(),None)[0,0]) <= noise_level
+
+            assert abs(A_stoch._coeff_values[jj]\
+                       .evaluate(None,None,(),None)[1,1]) <= noise_level
+
+            assert abs(A_stoch._coeff_values[jj]\
+                       .evaluate(None,None,(),None)[0,1]) <= noise_level
+
+            assert abs(A_stoch._coeff_values[jj]\
+                       .evaluate(None,None,(),None)[1,0]) <= noise_level

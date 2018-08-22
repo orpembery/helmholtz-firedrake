@@ -302,9 +302,16 @@ class PiecewiseConstantCoeffGenerator(object):
     StochasticHelmholtzProblem for the case of piecewise continuous on
     some grid.
 
-    This can almost certainly be made better, but is a bit of a hack
-    until they've sorted complex so that I can do things the way Julian
-    does.
+    Floats are Unif(noise_level,noise_level) perturbations
+    of coeff_pre (see init).
+
+    Matrices (call them A) are generated so that if coeff_pre is the 2x2
+    identity, then the entrywise L^\infty norm of A-I is <= noise_level
+    almost surely, and the matrices are s.p.d..
+
+    The method for construction can almost certainly be made better, but
+    is a bit of a hack until they've sorted complex so that I can do
+    things the way Julian does.
 
     Attribute:
 
@@ -439,25 +446,31 @@ class PiecewiseConstantCoeffGenerator(object):
          for coeff_dummy in self._coeff_values]
 
     def _generate_matrix_coeff(self):
-        """Will generate a random float or a 2x2 s.p.d. numpy array.
+        """Generates a realisation of the random coefficient.
 
-        Floats are Unif(-self._noise_level,self._noise_level), matrices
-        are generated so that the entrywise L^\infty norm is <=
-        self._noise_level almost surely.
+        For matrices, uses the fact that for real matrices,
+        [[1+a,b],[b,1+c]] is positive-definite iff 1+a>0 and b**2 <
+        (1+a)*(1+c).
 
-        For matrices, uses the fact that [[a,b],[b,c]] is
-        positive-definite iff a>0 and b**2 < a*c.
+        Let L denote self._noise_level. Matrices are of the form A =
+        coeff_pre + [[a,b],[b,c]], where a,c ~ Unif(-L,0) and, letting
+        b_bound = min{L,sqrt((1+a)*(1+c))}, b ~ Unif(-b_bound,b_bound)
+        with a,b,c independent of each other. This construction
+        guarantees that if coeff_pre = I, then A is s.p.d. and the
+        entrywise L^\infty norm of A-I is bounded by self._noise_level
+        almost surely.
         """
 
         if self._coeff_dims == [1]:
             coeff = self._noise_level*(
                 2.0 * np.random.random_sample(self._coeff_dims) - 1.0)
         elif self._coeff_dims == [2,2]:
-            a = np.random.random_sample(1)
-            c = np.random.random_sample(1)
-            b = np.sqrt(a*c) * np.random.random_sample(1)
+            a = -self._noise_level * np.random.random_sample(1)
+            c = -self._noise_level * np.random.random_sample(1)
+            b_bound = min(self._noise_level,np.sqrt((1.0+a)*(1.0+c)))
+            b = b_bound * (2.0 * np.random.random_sample(1) - 1.0)
 
-            coeff = self._noise_level * np.array([[a,b],[b,c]])
+            coeff = np.array([[a,b],[b,c]])
         return coeff
 
 

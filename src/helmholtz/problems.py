@@ -291,7 +291,7 @@ class HelmholtzProblem(object):
                                  }
 
     def unforce_lu(self):
-        """Replaces Lu solver with default."""
+        """Replaces LU solver with default."""
 
         self._solver_params_override = False
 
@@ -318,7 +318,7 @@ class StochasticHelmholtzProblem(HelmholtzProblem):
     the coefficients A and n, and updates them.
     """
 
-    def __init__(self, k, V, A_stoch, n_stoch, **kwargs):
+    def __init__(self, k, V, A_stoch=None, n_stoch=None, **kwargs):
         """Creates an instance of StochasticHelmholtzProblem.
 
         All parameters are as in HelmholtzProblem, apart from:
@@ -351,17 +351,31 @@ class StochasticHelmholtzProblem(HelmholtzProblem):
             [A_pre,n_pre,f,g], where these satisfy the requirements
             in HelmholtzProblem.
         """
+        if A_stoch is not None:
+            self._A_sample = A_stoch.sample
 
-        self._A_sample = A_stoch.sample
+        if n_stoch is not None:
+            self._n_sample = n_stoch.sample
 
-        self._n_sample = n_stoch.sample
-              
-        super().__init__(k, V, A=A_stoch.coeff, n=n_stoch.coeff,
-                         **kwargs)
-
+        if A_stoch is None:
+            super().__init__(k, V, n=n_stoch.coeff, **kwargs)
+        elif n_stoch is None:
+            super().__init__(k, V, A=A_stoch.coeff, **kwargs)
+        else:
+            super().__init__(k, V, A=A_stoch.coeff, n=n_stoch.coeff,**kwargs)
+            
     def sample(self):
-        """Samples the coefficients A and n."""
+        """Samples the coefficients A and n.
 
-        self._A_sample()
+        TypeErrors arise if A_stoch or n_stoch is None.
+        """
 
-        self._n_sample()
+        try:
+            self._A_sample()
+        except TypeError:
+            None
+            
+        try:
+            self._n_sample()
+        except TypeError:
+            None

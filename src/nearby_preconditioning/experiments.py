@@ -107,76 +107,76 @@ def nearby_preconditioning_test_set(
     (respectively) base_noise_A * h**t[0] * k**t[1] and base_noise_n *
     h**t[2] * k**t[3].
 
-    save_location - string specifying the subfolder of the current
+    save_location - string specifying the absolute path for the the
     folder in which to save the .csv output files.
     """
 
     if not(isinstance(A_pre_type,str)):
-        raise hh.UserInputError("Input A_pre_type should be a string")
+        raise TypeError("Input A_pre_type should be a string")
     elif A_pre_type is not "constant":
         raise HelmholtzNotImplementedError(
             "Currently only implemented A_pre_type = 'constant'.")
 
     if not(isinstance(n_pre_type,str)):
-        raise hh.UserInputError("Input n_pre_type should be a string")
+        raise TypeError("Input n_pre_type should be a string")
     elif n_pre_type is not "constant":
         raise HelmholtzNotImplementedError(
             "Currently only implemented n_pre_type = 'constant'.")
 
     if not(isinstance(k_list,list)):
-        raise hh.UserInputError("Input k_list should be a list.")
+        raise TypeError("Input k_list should be a list.")
     elif any(not(isinstance(k,float)) for k in k_list):
-        raise hh.UserInputError("Input k_list should be a list of floats.")
+        raise TypeError("Input k_list should be a list of floats.")
     elif any(k <= 0 for k in k_list):
-        raise hh.UserInputError(
+        raise TypeError(
             "Input k_list should be a list of positive floats.")
 
     if not(isinstance(h_list,list)):
-        raise hh.UserInputError("Input h_list should be a list.")
+        raise TypeError("Input h_list should be a list.")
     elif any(not(isinstance(h_tuple,tuple)) for h_tuple in h_list):
-        raise hh.UserInputError("Input h_list should be a list of tuples.")
+        raise TypeError("Input h_list should be a list of tuples.")
     elif any(len(h_tuple) is not 2 for h_tuple in h_list):
-        raise hh.UserInputError("Input h_list should be a list of 2-tuples.")
+        raise TypeError("Input h_list should be a list of 2-tuples.")
     elif any(not(isinstance(h_tuple[0],float)) for h_tuple in h_list)\
              or any(h_tuple[0] <= 0 for h_tuple in h_list):
-        raise hh.UserInputError(
+        raise TypeError(
             "The first item of every tuple in h_list\
             should be a positive float.")
     elif any(not(isinstance(h_tuple[1],float)) for h_tuple in h_list):
-        raise hh.UserInputError(
+        raise TypeError(
             "The second item of every tuple in h_list should be a float.")
 
     if not(isinstance(noise_master_level_list,list)):
-        raise hh.UserInputError(
+        raise TypeError(
             "Input noise_master_level_list should be a list.")
     elif any(not(isinstance(noise_tuple,tuple))
              for noise_tuple in noise_master_level_list):
-        raise hh.UserInputError(
+        raise TypeError(
             "Input noise_master_level_list should be a list of tuples.")
     elif any(len(noise_tuple) is not 2
              for noise_tuple in noise_master_level_list):
-        raise hh.UserInputError(
+        raise TypeError(
             "Input noise_master_level_list should be a list of 2-tuples.")
     elif any(any(not(isinstance(noise_tuple[i],float))
                  for i in range(len(noise_tuple)))
              for noise_tuple in noise_master_level_list):
-        raise hh.UserInputError(
+        raise TypeError(
             "Input noise_master_level_list\
             should be a list of 2-tuples of floats.")
 
     if not(isinstance(noise_modifier_list,list)):
-        raise hh.UserInputError("Input noise_modifier_list should be a list.")
+        raise TypeError("Input noise_modifier_list should be a list.")
     elif any(not(isinstance(mod_tuple,tuple))
              for mod_tuple in noise_modifier_list):
-        raise hh.UserInputError(
+        raise TypeError(
             "Input noise_modifier_list should be a list of tuples.")
     elif any(len(mod_tuple) is not 4 for mod_tuple in noise_modifier_list):
-        raise hh.UserInputError(
+        raise TypeError(
             "Input noise_modifier_list should be a list of 4-tuples.")
     elif any(any(not(isinstance(mod_tuple[i],float))
                  for i in range(len(mod_tuple)))
              for mod_tuple in noise_modifier_list):
-        raise hh.UserInputError(
+        raise TypeError(
             "Input noise_modifier_list\
             should be a list of 4-tuples of floats.")
 
@@ -209,9 +209,9 @@ def nearby_preconditioning_test_set(
                     n_modifier = h ** modifier[2] * k**modifier[3]
                     A_noise_level = A_noise_master * A_modifier
                     n_noise_level = n_noise_master * n_modifier
-                    A_stoch = PieceWiseConstantCoeffGenerator(
+                    A_stoch = PiecewiseConstantCoeffGenerator(
                         mesh,num_pieces,A_noise_level,A_pre,[2,2])
-                    n_stoch = PieceWiseConstantCoeffGenerator(
+                    n_stoch = PiecewiseConstantCoeffGenerator(
                         mesh,num_pieces,n_noise_level,n_pre,[1])
                     np.random.seed(seed)
                     
@@ -219,8 +219,17 @@ def nearby_preconditioning_test_set(
                         V,k,A_pre,A_stoch,n_pre,n_stoch,f,g,num_repeats)
 
                     write_GMRES_its(
-                        GMRES_its,k,h_tuple,num_pieces,A_pre_type,n_pre_type,
-                        noise_master,modifier,num_repeats,save_location)
+                        GMRES_its,save_location,
+                        {'k' : k,
+                         'h_tuple' : h_tuple,
+                         'num_pieces' : num_pieces,
+                         'A_pre_type' : A_pre_type,
+                         'n_pre_type' : n_pre_type,
+                         'noise_master' : noise_master,
+                         'modifier' : modifier,
+                         'num_repeats' : num_repeats
+                         }
+                        )
 def h_to_mesh_points(h):
     """Given a mesh size h, computes the arguments to Firedrake's
     UnitSquareMesh that will give (at most) that mesh size.
@@ -231,36 +240,28 @@ def h_to_mesh_points(h):
     """
     return np.ceil(np.sqrt(2.0)/h)
 
-def write_GMRES_its(GMRES_its,k,h_tuple,num_pieces,A_pre_type,n_pre_type,
-                    noise_master,modifier,num_repeats,save_location):
+def write_GMRES_its(GMRES_its,save_location,info):
     """Writes the number of GMRES iterations, and other information, to
     a .csv file.
 
     Parameters:
 
+    save_location - see nearby_preconditioning_test_set.
+
     GMRES_its - list of positive ints of length num_repeats (output of
     nearby_preconditioning_test).
 
-    k - see nearby_preconditioning_test.
+    info - a dict containing all of the other information to be written
+    to the file.
 
-    h_tuple - 2-tuple - an element of the list h_list in
-    nearby_preconditioning_test_set.
-
-    num_pieces - see nearby_preconditioning_test_set.
-
-    A_pre_type - see nearby_preconditioning_test_set.
-
-    n_pre_type - see nearby_preconditioning_test_set.
-
-    noise_master - 2-tuple - element of the list noise_master_level_list
-    in nearby_preconditioning_test_set.
-
-    modifier - 4-tuple - element of the list noise_modifier_list in
-    nearby_preconditioning_test_set.
-
-    num_repeats - see nearby_preconditioning_test.
-
-    save_location - see nearby_preconditioning_test_set.
+    The output csv file will have the filename
+    'nearby-preconditioning-test-output-date_time.csv, where date_time
+    is the date and time. The rows of the file will consist of the hash
+    of the current git commit, then the date and time, then all of the
+    entries of info (where the value first column will be the key, and
+    the value in the second column will be the value in the dict),
+    followed by the GMRES iterations (repeat number in the first column,
+    number of GMRES iterations in the second).
     """
 
     # Get git hash
@@ -282,18 +283,13 @@ def write_GMRES_its(GMRES_its,k,h_tuple,num_pieces,A_pre_type,n_pre_type,
         file_writer = csv.writer(csvfile, delimiter = ',',
                                  quoting = csv.QUOTE_MINIMAL)
         file_writer.writerow(['Git hash', git_hash_string])
+
         # Current time in UTC as an ISO string
         file_writer.writerow(['Date/Time', date_time])
-        file_writer.writerow(['k',k ])
-        file_writer.writerow(['h_tuple',h_tuple])
-        file_writer.writerow(['num_pieces',num_pieces])
-        file_writer.writerow(['A_pre_type',A_pre_type])
-        file_writer.writerow(['n_pre_type',n_pre_type])
-        file_writer.writerow(['noise_master',noise_master])
-        file_writer.writerow(['modifier',modifier])
-        file_writer.writerow(['num_repeats',num_repeats])
-        file_writer.writerow(
-            ['Experiment number','Number of GMRES iterations'])
+
+        # All other properties
+        for ii in info.keys():
+            file_writer.writerow([ii,info[ii]])
 
         for ii in range(len(GMRES_its)):
             file_writer.writerow([ii,GMRES_its[ii]])

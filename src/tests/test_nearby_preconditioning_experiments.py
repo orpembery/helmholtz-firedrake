@@ -196,3 +196,13 @@ def test_matrices_noise_level():
 
             assert abs(A_stoch._coeff_values[jj]\
                        .evaluate(None,None,(),None)[1,0]) <= noise_level
+
+def test_nearby_preconditioning_set_no_errors():
+    """Tests that a basic run of a set doesn't produce any errors."""
+
+    nbex.nearby_preconditioning_test_set(
+        'constant','constant',2,1,2,[10.0],[(1.0,-1.0)],[(0.01,0.1)],
+        [(0.0,0.0,0.0,0.0)],
+        '/home/owen/Documents/code/helmholtz-firedrake/output/testing/'
+    )
+

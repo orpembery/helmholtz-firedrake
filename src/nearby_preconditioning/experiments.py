@@ -231,8 +231,10 @@ def nearby_preconditioning_piecewise_test_set(
                          }
                         )
 def h_to_mesh_points(h):
-    """Given a mesh size h, computes the arguments to Firedrake's
-    UnitSquareMesh that will give (at most) that mesh size.
+    """Converts a mesh size to a number of points giving that mesh size.
+
+    Given a mesh size h, computes the arguments to Firedrake's
+    UnitSquareMesh that will give (at most) that mesh size in 2D.
 
     Parameter:
 
@@ -264,6 +266,9 @@ def write_GMRES_its(GMRES_its,save_location,info):
     number of GMRES iterations in the second).
     """
 
+    # Check save_location is actually a directory path
+    assert save_location[-1] == "/"
+    
     # Get git hash
     git_hash = subprocess.run("git rev-parse HEAD", shell=True,
                               stdout=subprocess.PIPE)
@@ -293,7 +298,7 @@ def write_GMRES_its(GMRES_its,save_location,info):
 
         for ii in range(len(GMRES_its)):
             file_writer.writerow([ii,GMRES_its[ii]])
-
+        print(save_location)
 class PiecewiseConstantCoeffGenerator(object):
     """Does the work of A_stoch and n_stoch in
     StochasticHelmholtzProblem for the case of piecewise continuous on
@@ -493,7 +498,7 @@ class GammaConstantCoeffGenerator(object):
     + gamma(rate).
     """
 
-    def __init__(self,shape,scale,coeff_pre):
+    def __init__(self,shape,scale,coeff_lower_bound):
         """Initialises a constant, gamma-distributed constant.
 
         Parameters:
@@ -503,7 +508,7 @@ class GammaConstantCoeffGenerator(object):
         scale - the scale of the gamma distribution (commonly
         called theta).
 
-        coeff_base - the lower bound for the coefficient.
+        coeff_lower_bound - the lower bound for the coefficient.
 
         The mean of the gamma distribution is shape * scale and the
         variance is shape * scale**2.
@@ -511,9 +516,9 @@ class GammaConstantCoeffGenerator(object):
 
         self._coeff_rand = fd.Constant(0.0)
 
-        self._coeff_base = coeff_base
+        self._coeff_lower_bound = coeff_lower_bound
 
-        self.coeff = self._coeff_base + self._coeff_rand
+        self.coeff = self._coeff_lower_bound + self._coeff_rand
         """Spatially homogeneous, but random coefficient."""
 
         self._shape = shape
@@ -527,17 +532,59 @@ class GammaConstantCoeffGenerator(object):
 
         self._coeff_rand.assign(np.random.gamma(self._shape,self._scale))
 
-def nearby_preconditioning_test_gamma(V,k,n_lower_bound,num_repeats):
-    """Tests the effectiveness of nearby preconditioning for a homogeneous but gamma-distributed random refractive index.
+def nearby_preconditioning_test_gamma(k_range,n_lower_bound,n_var_base,
+                                      n_var_k_power_range,num_repeats):
+    """Tests the effectiveness of nearby preconditioning for a
+    homogeneous but gamma-distributed random refractive index.
 
-    This is an initial version - it holds the mean of the refractive index constant =1, but then changes the variance of the refractive index.
+    This is an initial version - it holds the mean of the refractive
+    index constant = 1, but then changes the variance of the refractive
+    index.
     """
+    
+    for k in k_range:
 
-    # need to add in a loop (and a loop over k?) now
-    
-    n_stoch = GammaConstantCoeffGenerator(shape,scale,coeff_pre)
-    
-    GMRES_its = nearby_preconditioning_test(V,k,A_pre=None,A_stoch=None,
-                                            n_pre=n_stoch._coeff_base,
-                                            n_stoch=n_stoch,f=0.0,g=1.0,
-                                            num_repeats=num_repeats)
+        num_points = h_to_mesh_points(k**(-1.5))
+        
+        mesh = fd.UnitSquareMesh(num_points,num_points)
+
+        V = fd.FunctionSpace(mesh, "CG", 1)
+        
+        for n_var_k_power in n_var_k_power_range:
+            print(k)
+            print(n_var_k_power)
+            n_var = n_var_base * k**n_var_k_power
+            
+            # Ensure Gamma variates have mean 1 - n_lower_bound and
+            # variance n_var
+            scale = n_var / (1.0 - n_lower_bound)
+            shape = (1.0 - n_lower_bound)**2 / n_var
+            
+            n_stoch = GammaConstantCoeffGenerator(shape,scale,n_lower_bound)
+
+            n_pre = 1.0
+            f = 0.0
+            g = 1.0
+            
+            GMRES_its = nearby_preconditioning_test(
+                V,k,A_pre=None,A_stoch=None,n_pre=n_pre,n_stoch=n_stoch,
+                f=f,g=g,num_repeats=num_repeats)
+
+            save_location =\
+                "/home/owen/Documents/code/helmholtz-firedrake/output/testing/"
+
+            info = {"function" : "nearby_preconditioning_test_gamma",
+                    "h" : "k**(-1.5)",
+                    "n_var_base" : n_var_base,
+                    "n_var_k_power" : n_var_k_power,
+                    "n_lower_bound" : n_lower_bound,
+                    "scale" : scale,
+                    "shape" : shape,
+                    "f" : f,
+                    "g" : g,
+                    "n_pre" : n_pre,
+                    "num_repeats" : num_repeats
+                    }
+                    
+            
+            write_GMRES_its(GMRES_its,save_location,info)

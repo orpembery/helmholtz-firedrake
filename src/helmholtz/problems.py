@@ -372,10 +372,10 @@ class StochasticHelmholtzProblem(HelmholtzProblem):
 
         try:
             self._A_sample()
-        except TypeError:
+        except AttributeError:
             None
             
         try:
             self._n_sample()
-        except TypeError:
+        except AttributeError:
             None

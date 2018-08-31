@@ -574,6 +574,7 @@ def nearby_preconditioning_test_gamma(k_range,n_lower_bound,n_var_base,
                 "/home/owen/Documents/code/helmholtz-firedrake/output/testing/"
 
             info = {"function" : "nearby_preconditioning_test_gamma",
+                    "k" : k,
                     "h" : "k**(-1.5)",
                     "n_var_base" : n_var_base,
                     "n_var_k_power" : n_var_k_power,

@@ -567,7 +567,8 @@ def nearby_preconditioning_test_gamma(k_range,n_lower_bound,n_var_base,
             g = 1.0
             
             GMRES_its = nearby_preconditioning_test(
-                V,k,A_pre=None,A_stoch=None,n_pre=n_pre,n_stoch=n_stoch,
+                V,k,A_pre=fd.as_matrix([[1.0,0.0],[0.0,1.0]]),
+                A_stoch=None,n_pre=n_pre,n_stoch=n_stoch,
                 f=f,g=g,num_repeats=num_repeats)
 
             save_location =\

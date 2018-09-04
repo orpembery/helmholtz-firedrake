@@ -297,6 +297,31 @@ class HelmholtzProblem(object):
 
         self._set_pre()
 
+
+    def set_rhs_nbpc_paper(self,A_right,alpha):
+        """Sets rhs for usage in the nearby precon paper.
+        
+        Sets the right-hand side of the weak form to be the functional
+        F(v) = (A_right \grad f_tilde,\grad v)_{L^2}, for 
+        f_tilde = \sum_i \alpha_i phi_i, where the \phi_i are the basis
+        functions and \alpha_i are arbitrary complex numbers.
+
+        Parameters:
+
+        A_right - a matrix-valued function of the same type as A in
+        HelmholtzProblem.
+
+        alpha - N-by-1 numpy array of complex numbers, where N is the
+        number of nodes in self.V.mesh.
+        """
+
+        f = fd.Function(self._V,val=alpha)
+
+        if not self._initialised:
+            self._initialise_problem()
+        
+        self._L = fd.inner(A_right * fd.grad(f),fd.grad(self._v))*fd.dx
+
         
         
 

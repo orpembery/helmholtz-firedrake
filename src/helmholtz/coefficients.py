@@ -1,0 +1,236 @@
+import firedrake as fd
+import numpy as np
+
+class PiecewiseConstantCoeffGenerator(object):
+    """Does the work of A_stoch and n_stoch in
+    StochasticHelmholtzProblem for the case of piecewise continuous on
+    some grid.
+
+    Floats are Unif(noise_level,noise_level) perturbations
+    of coeff_pre (see init).
+
+    Matrices (call them A) are generated so that if coeff_pre is the 2x2
+    identity, then the entrywise L^\infty norm of A-I is <= noise_level
+    almost surely, and the matrices are s.p.d..
+
+    The method for construction can almost certainly be made better, but
+    is a bit of a hack until they've sorted complex so that I can do
+    things the way Julian does.
+
+    Attribute:
+
+    coeff - a UFL expression for a piecewise constant (scalar- or
+    matrix-valued) coefficient, implemented using Firedrake Constants.
+
+    Method:
+
+    sample - randomly updates coeff by randomly sampling around the
+    known background given by the input argument coeff_pre. Samples have
+    (entrywise) L^\infty norm <= noise_level almost surely.
+    """
+
+    def __init__(self,mesh,num_pieces,noise_level,coeff_pre,coeff_dims):
+        """Initialises a piecewise-constant random coefficient, where
+        the coefficient is peicewise-constant on a num_pieces x
+        num_pieces grid.
+
+        Parameters:
+
+        mesh - a Firedrake mesh object.
+
+        num_pieces - int - the number of `pieces' in each direction for
+        the piecewise-constant coefficients. Empirically must be <= 13,
+        or get a recursion error.
+
+        noise_level - positive float - the level of the random noise.
+
+        coeff_pre - a UFL expression with dimension coeff_dims - the
+        background around which we take piecewise-constant random
+        perturbations.
+
+        coeff_dims - a list, either [1] or [2,2] - the `dimension' of
+        the coefficient (i.e., either scalar-valued or 2x2 matrix
+        valued).
+        """
+
+        self._coeff_dims = coeff_dims
+        """Dimension of the coefficient - [1] or [2,2]."""
+
+        self._num_pieces = num_pieces
+        """Number of pieces in each direction\
+        for random coefficients."""
+
+        self._noise_level = noise_level
+        """Magnitude of random noise."""
+                                                  
+        self._coeff_initialise(mesh,coeff_pre)
+        """Create realisation of random coefficient."""
+
+        self.sample()
+        
+
+    def _list_extract(self,values_list,x_coord,y_coord,coord_length):
+        """If values_list were put into a coord_length x
+        coord_length array, extracts the item at position
+        (x_coord,y_coord).
+        
+        Parameters:
+        
+        values_list - list of length coord_length**2.
+
+        x_coord, y_coord - int in range(coord_length).
+
+        coord_length - int.
+        """
+        return values_list[x_coord + y_coord * coord_length]
+
+    def _heaviside(self,x):
+        """Defines the heaviside step function in UFL.
+
+        Parameters:
+
+        x - single coordinate of a UFL SpatialCoordinate.
+        """
+        return 0.5 * (fd.sign(fd.real(x)) + 1.0)
+
+    def _Iab(self,x,a,b) :
+        """Indicator function on [a,b] in UFL.
+
+        Parameters:
+
+        x - single coordinate of a UFL SpatialCoordinate.
+        
+        a, b - floats in [0,1].
+        """
+        return self._heaviside(x-a) - self._heaviside(x-b)
+
+    def _coeff_initialise(self,mesh,coeff_pre):
+        """Initialises self.coeff equal to coeff_pre, but sets up
+        Firedrake Constant structure to allow for sampling.
+
+        Parameters:
+
+        mesh - a Firedrake mesh.
+
+        coeff_pre - see init.
+        """
+
+        if self._coeff_dims == [2,2]\
+                and coeff_pre != fd.as_matrix([[1.0,0.0],[0.0,1.0]]):
+
+            warnings.warn("coeff_pre is not the identity. There is not\
+            guarantee that the randomly-generated matrices are\
+            positive-definite, or have the correct amount of noise.")
+        
+        self._coeff_values = []
+        
+        for ii in range(self._num_pieces**2):
+            if self._coeff_dims == [2,2]:
+                self._coeff_values.append(np.array([[0.0,0.0],[0.0,0.0]]))
+            elif self._coeff_dims == [1]:
+                self._coeff_values.append(np.array(0.0))
+            else:
+                raise NotImplementedError(
+                          "Have only implemented real- and\
+                          matrix-valued coefficients")
+                
+        self._coeff_values = [fd.Constant(coeff_dummy,domain=mesh)
+                              for coeff_dummy in self._coeff_values]
+        
+        # Form coeff by looping over all the subdomains
+        x = fd.SpatialCoordinate(mesh)
+
+        self.coeff = coeff_pre
+        
+        for xii in range(self._num_pieces):
+            for yii in range(self._num_pieces):
+                self.coeff +=\
+                self._list_extract(self._coeff_values,xii,yii,
+                                   self._num_pieces)\
+                * self._Iab(x[0],xii/self._num_pieces,(xii+1)/
+                            self._num_pieces)\
+                * self._Iab(x[1],yii/self._num_pieces,(yii+1)/self._num_pieces)
+
+    def sample(self):
+        """Samples the coefficient coeff."""
+        [coeff_dummy.assign(self._generate_matrix_coeff())
+         for coeff_dummy in self._coeff_values]
+
+    def _generate_matrix_coeff(self):
+        """Generates a realisation of the random coefficient.
+
+        For matrices, uses the fact that for real matrices,
+        [[1+a,b],[b,1+c]] is positive-definite iff 1+a>0 and b**2 <
+        (1+a)*(1+c).
+
+        Let L denote self._noise_level. Matrices are of the form A =
+        coeff_pre + [[a,b],[b,c]], where a,c ~ Unif(-L,0) and, letting
+        b_bound = min{L,sqrt((1+a)*(1+c))}, b ~ Unif(-b_bound,b_bound)
+        with a,b,c independent of each other. This construction
+        guarantees that if coeff_pre = I, then A is s.p.d. and the
+        entrywise L^\infty norm of A-I is bounded by self._noise_level
+        almost surely.
+        """
+
+        if self._coeff_dims == [1]:
+            coeff = self._noise_level*(
+                2.0 * np.random.random_sample(self._coeff_dims) - 1.0)
+        elif self._coeff_dims == [2,2]:
+            a = -self._noise_level * np.random.random_sample(1)
+            c = -self._noise_level * np.random.random_sample(1)
+            b_bound = min(self._noise_level,np.sqrt((1.0+a)*(1.0+c)))
+            b = b_bound * (2.0 * np.random.random_sample(1) - 1.0)
+
+            coeff = np.array([[a,b],[b,c]])
+        return coeff
+
+
+class GammaConstantCoeffGenerator(object):
+    """Does the work of n_stoch in StochasticHelmholtzProblem for the
+    case of a constant but gamma-distributed refractive index.
+
+    Attribute:
+
+    coeff - a Firedrake Constant containing the value of the
+    scalar-valued coefficients.
+
+    Method:
+
+    sample - randomly updates coeff by randomly sampling from coeff_base
+    + gamma(rate).
+    """
+
+    def __init__(self,shape,scale,coeff_lower_bound):
+        """Initialises a constant, gamma-distributed constant.
+
+        Parameters:
+
+        shape - the shape of the gamma distribution (commonly called k).
+
+        scale - the scale of the gamma distribution (commonly
+        called theta).
+
+        coeff_lower_bound - the lower bound for the coefficient.
+
+        The mean of the gamma distribution is shape * scale and the
+        variance is shape * scale**2.
+        """
+
+        self._coeff_rand = fd.Constant(0.0)
+
+        self._coeff_lower_bound = coeff_lower_bound
+
+        self.coeff = self._coeff_lower_bound + self._coeff_rand
+        """Spatially homogeneous, but random coefficient."""
+
+        self._shape = shape
+        
+        self._scale = scale
+        
+        self.sample()
+
+    def sample(self):
+        """Samples the exponentially-distributed coefficient coeff."""
+
+        self._coeff_rand.assign(np.random.gamma(self._shape,self._scale))
+

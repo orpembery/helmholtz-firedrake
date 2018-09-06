@@ -15,7 +15,7 @@ class PiecewiseConstantCoeffGenerator(object):
 
     The method for construction can almost certainly be made better, but
     is a bit of a hack until they've sorted complex so that I can do
-    things the way Julian does.
+    things the way Julian Andrei (Kiel) does.
 
     Attribute:
 
@@ -233,4 +233,28 @@ class GammaConstantCoeffGenerator(object):
         """Samples the exponentially-distributed coefficient coeff."""
 
         self._coeff_rand.assign(np.random.gamma(self._shape,self._scale))
+
+class LInfinityMonotonicCoeff(object):
+    """Generates piecewise-smooth coefficients that are monotonic.
+
+    `Monotic' means that the coefficients are monotonically
+    non-decreasing in the radial direction in the sense of [Graham,
+    Pembery, Spence, Journal of Differential Equations (2018), to
+    appear, Condition 2.6].
+    """
+
+
+    # Basic idea
+
+    # Specify where the `origin' is
+
+    # Choose n_min (possibly have options for randomly choosing in such a way that it is `nice' (in the sense of the hetero paper)
+
+    # choose location of `base' interfaces (number of interfaces optional)
+
+    # perturb the base interfaces in order (making sure they don't overlap)
+
+    # on each `piece', define the sound speeds (define the (random, via series expansion with variable coeffs) growth in the radial direction, and then define the random (again via a truncated (variable truncation length?) Fourier expansion) deviations in the tangential direction, and take the product)
+
+    # Put it all together
 

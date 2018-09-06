@@ -4,13 +4,19 @@ import numpy as np
 
 k = 20.0
 
-h = k**(-1.5)
+h = k**(-0.5)
 
 num_mesh = np.ceil(np.sqrt(2.0)/h)
 
 mesh = UnitSquareMesh(num_mesh,num_mesh)
 
-V = FunctionSpace(mesh,"CG",1)
+V = FunctionSpace(mesh,"CG",2)
+
+x = SpatialCoordinate(mesh)
+
+#n = (x[0] - 0.5)**2 + (x[1]-0.5)**2
+
+#prob = hh.HelmholtzProblem(k,V,n=n)
 
 prob = hh.HelmholtzProblem(k,V)
 

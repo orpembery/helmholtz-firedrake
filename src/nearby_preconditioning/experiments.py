@@ -1,13 +1,10 @@
 import firedrake as fd
 import helmholtz.problems as hh
 import helmholtz.coefficients as coeff
+import helmholtz.utils as hh_utils
 import numpy as np
-import subprocess
-import datetime
-import csv
-import warnings
 
-def nearby_preconditioning_test(V,k,A_pre,A_stoch,n_pre,n_stoch,f,g,
+def nearby_preconditioning_experiment(V,k,A_pre,A_stoch,n_pre,n_stoch,f,g,
                                 num_repeats):
     """For a given preconditioning Helmholtz problem, performs a test of
     the effectiveness of nearby preconditioning.
@@ -65,7 +62,7 @@ def nearby_preconditioning_test(V,k,A_pre,A_stoch,n_pre,n_stoch,f,g,
 
     return all_GMRES_its
 
-def nearby_preconditioning_piecewise_test_set(
+def nearby_preconditioning_piecewise_experiment_set(
         A_pre_type,n_pre_type,num_pieces,seed,num_repeats,
         k_list,h_list,noise_master_level_list,noise_modifier_list,
         save_location):
@@ -191,7 +188,7 @@ def nearby_preconditioning_piecewise_test_set(
     for k in k_list:
         for h_tuple in h_list:
             h = h_tuple[0] * k**h_tuple[1]
-            mesh_points = h_to_mesh_points(h)
+            mesh_points = hh_utils.h_to_mesh_points(h)
             mesh = fd.UnitSquareMesh(mesh_points,mesh_points)
             V = fd.FunctionSpace(mesh, "CG", 1)
 
@@ -217,10 +214,10 @@ def nearby_preconditioning_piecewise_test_set(
                         mesh,num_pieces,n_noise_level,n_pre,[1])
                     np.random.seed(seed)
                     
-                    GMRES_its = nearby_preconditioning_test(
+                    GMRES_its = nearby_preconditioning_experiment(
                         V,k,A_pre,A_stoch,n_pre,n_stoch,f,g,num_repeats)
 
-                    write_GMRES_its(
+                    hh_utils.write_GMRES_its(
                         GMRES_its,save_location,
                         {'k' : k,
                          'h_tuple' : h_tuple,
@@ -233,7 +230,7 @@ def nearby_preconditioning_piecewise_test_set(
                          }
                         )
 
-def nearby_preconditioning_test_gamma(k_range,n_lower_bound,n_var_base,
+def nearby_preconditioning_experiment_gamma(k_range,n_lower_bound,n_var_base,
                                       n_var_k_power_range,num_repeats):
     """Tests the effectiveness of nearby preconditioning for a
     homogeneous but gamma-distributed random refractive index.
@@ -245,7 +242,7 @@ def nearby_preconditioning_test_gamma(k_range,n_lower_bound,n_var_base,
     
     for k in k_range:
 
-        num_points = h_to_mesh_points(k**(-1.5))
+        num_points = hh_utils.h_to_mesh_points(k**(-1.5))
         
         mesh = fd.UnitSquareMesh(num_points,num_points)
 
@@ -291,9 +288,10 @@ def nearby_preconditioning_test_gamma(k_range,n_lower_bound,n_var_base,
                     }
                     
             
-            write_GMRES_its(GMRES_its,save_location,info)
+            hh_utils.write_GMRES_its(GMRES_its,save_location,info)
 
-def special_rhs_for_paper_test(k_list,num_system,num_rhs,fine_grid_refinement):
+def special_rhs_for_paper_experiment(k_list,num_system,num_rhs,
+                                     fine_grid_refinement):
     """Tests to see if the required condition in the paper holds.
 
     For a variety of different Helmholtz systems, and a variety of
@@ -328,7 +326,7 @@ def special_rhs_for_paper_test(k_list,num_system,num_rhs,fine_grid_refinement):
 
     seed = 1.0
     
-    smallest_mesh_size_num_points =
+    smallest_mesh_size_num_points =\
         h_to_mesh_points(max(k_list)**min(h_power_list))
 
     np.random.seed(seed)
@@ -365,6 +363,6 @@ def special_rhs_for_paper_test(k_list,num_system,num_rhs,fine_grid_refinement):
 
                     # store error and rhs
 
-                    
+                    print("In progress")
 
             

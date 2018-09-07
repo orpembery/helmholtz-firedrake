@@ -1,4 +1,5 @@
-Write tests
+Write tests for nontrapping coefficients
+Fix \
 Once firedrake have fixed bug that meant Julian's approach didn't work, rewrite the piecewise-constant stochastic code
 Figure out whether non-constant on the boundary is an issue
 Change mesh_size to make it work in 3-d

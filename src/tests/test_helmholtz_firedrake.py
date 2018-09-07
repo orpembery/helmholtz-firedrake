@@ -2,7 +2,7 @@ import helmholtz.problems as hh
 import firedrake as fd
 import numpy as np
 import pytest
-from nearby_preconditioning.experiments import PiecewiseConstantCoeffGenerator
+from helmholtz.coefficients import PiecewiseConstantCoeffGenerator
 
 def test_HelmholtzProblem_init_simple():
     """Test a simple setup."""

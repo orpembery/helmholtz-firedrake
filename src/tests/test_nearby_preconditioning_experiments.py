@@ -2,6 +2,8 @@ import helmholtz.problems as hh
 import firedrake as fd
 import numpy as np
 import nearby_preconditioning.experiments as nbex
+from helmholtz.coefficients import PiecewiseConstantCoeffGenerator
+import helmholtz.utils as hh_utils
 import copy
 
 # nbpc test - throws right error with 13/14
@@ -16,17 +18,17 @@ def test_coeff_definition_error():
     num_repeats = 10
     
     A_pre = fd.as_matrix(np.array([[1.0,0.0],[0.0,1.0]]))
-    A_stoch = nbex.PiecewiseConstantCoeffGenerator(mesh,num_pieces,
+    A_stoch = PiecewiseConstantCoeffGenerator(mesh,num_pieces,
                                                    noise_level,A_pre,[2,2])
 
     n_pre = 1.0
-    n_stoch = nbex.PiecewiseConstantCoeffGenerator(mesh,num_pieces,
+    n_stoch = PiecewiseConstantCoeffGenerator(mesh,num_pieces,
                                                    noise_level,n_pre,[1])
 
     f = 1.0
     g = 1.0
     
-    GMRES_its = nbex.nearby_preconditioning_test(V,k,A_pre,A_stoch,
+    GMRES_its = nbex.nearby_preconditioning_experiment(V,k,A_pre,A_stoch,
                                 n_pre,n_stoch,f,g,num_repeats)
 
     # The code should catch the error and print a warning message, and
@@ -45,17 +47,17 @@ def test_coeff_definition_no_error():
     num_repeats = 10
     
     A_pre = fd.as_matrix(np.array([[1.0,0.0],[0.0,1.0]]))
-    A_stoch = nbex.PiecewiseConstantCoeffGenerator(mesh,num_pieces,
+    A_stoch = PiecewiseConstantCoeffGenerator(mesh,num_pieces,
                                                    noise_level,A_pre,[2,2])
 
     n_pre = 1.0
-    n_stoch = nbex.PiecewiseConstantCoeffGenerator(mesh,num_pieces,
+    n_stoch = PiecewiseConstantCoeffGenerator(mesh,num_pieces,
                                                    noise_level,n_pre,[1])
 
     f = 1.0
     g = 1.0
     
-    GMRES_its = nbex.nearby_preconditioning_test(V,k,A_pre,A_stoch,
+    GMRES_its = nbex.nearby_preconditioning_experiment(V,k,A_pre,A_stoch,
                                 n_pre,n_stoch,f,g,num_repeats)
 
     # The code should catch the error and print a warning message, and
@@ -75,11 +77,11 @@ def test_coeff_being_updated():
     num_repeats = 10
     
     A_pre = fd.as_matrix(np.array([[1.0,0.0],[0.0,1.0]]))
-    A_stoch = nbex.PiecewiseConstantCoeffGenerator(mesh,num_pieces,
+    A_stoch = PiecewiseConstantCoeffGenerator(mesh,num_pieces,
                                                    noise_level,A_pre,[2,2])
 
     n_pre = 1.0
-    n_stoch = nbex.PiecewiseConstantCoeffGenerator(mesh,num_pieces,
+    n_stoch = PiecewiseConstantCoeffGenerator(mesh,num_pieces,
                                                    noise_level,n_pre,[1])
 
     A_copy = copy.deepcopy(A_stoch._coeff_values[0].values())
@@ -102,7 +104,7 @@ def test_h_to_mesh_points():
     for h_power in range(10):
         h = 2**(-float(h_power))
 
-        assert nbex.h_to_mesh_points(h) == np.ceil(np.sqrt(2.0)/h)
+        assert hh_utils.h_to_mesh_points(h) == np.ceil(np.sqrt(2.0)/h)
     
     
 def test_coeff_size():
@@ -116,11 +118,11 @@ def test_coeff_size():
     num_repeats = 100
     
     A_pre = fd.as_matrix(np.array([[1.0,0.0],[0.0,1.0]]))
-    A_stoch = nbex.PiecewiseConstantCoeffGenerator(mesh,num_pieces,
+    A_stoch = PiecewiseConstantCoeffGenerator(mesh,num_pieces,
                                                    noise_level,A_pre,[2,2])
 
     n_pre = 1.0
-    n_stoch = nbex.PiecewiseConstantCoeffGenerator(mesh,num_pieces,
+    n_stoch = PiecewiseConstantCoeffGenerator(mesh,num_pieces,
                                                    noise_level,n_pre,[1])
     for ii in range(num_repeats):
         A_stoch.sample()
@@ -144,7 +146,7 @@ def test_matrices_spd():
     num_repeats = 100
     
     A_pre = fd.as_matrix(np.array([[1.0,0.0],[0.0,1.0]]))
-    A_stoch = nbex.PiecewiseConstantCoeffGenerator(mesh,num_pieces,
+    A_stoch = PiecewiseConstantCoeffGenerator(mesh,num_pieces,
                                                    noise_level,A_pre,[2,2])
 
     for ii in range(num_repeats):
@@ -177,7 +179,7 @@ def test_matrices_noise_level():
     num_repeats = 100
     
     A_pre = fd.as_matrix(np.array([[1.0,0.0],[0.0,1.0]]))
-    A_stoch = nbex.PiecewiseConstantCoeffGenerator(mesh,num_pieces,
+    A_stoch = PiecewiseConstantCoeffGenerator(mesh,num_pieces,
                                                    noise_level,A_pre,[2,2])
 
     for ii in range(num_repeats):
@@ -200,7 +202,7 @@ def test_matrices_noise_level():
 def test_nearby_preconditioning_set_no_errors():
     """Tests that a basic run of a set doesn't produce any errors."""
 
-    nbex.nearby_preconditioning_piecewise_test_set(
+    nbex.nearby_preconditioning_piecewise_experiment_set(
         'constant','constant',2,1,2,[10.0],[(1.0,-1.0)],[(0.01,0.1)],
         [(0.0,0.0,0.0,0.0)],
         '/home/owen/Documents/code/helmholtz-firedrake/output/testing/'

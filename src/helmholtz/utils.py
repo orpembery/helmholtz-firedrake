@@ -1,3 +1,8 @@
+import numpy as np
+import subprocess
+import datetime
+import csv
+
 def h_to_mesh_points(h):
     """Converts a mesh size to a number of points giving that mesh size.
 
@@ -66,4 +71,3 @@ def write_GMRES_its(GMRES_its,save_location,info):
 
         for ii in range(len(GMRES_its)):
             file_writer.writerow([ii,GMRES_its[ii]])
-        print(save_location)

@@ -301,7 +301,7 @@ class SmoothNTCoeff(object):
 
         x = fd.SpatialCoordinate(mesh)
 
-        r = fd.abs(x-x_centre)
+        r = abs(x-fd.as_vector(x_centre))
         
         self.n = self._coeff_values[0] * (r + delta)**(-1)
 

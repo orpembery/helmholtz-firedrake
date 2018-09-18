@@ -361,6 +361,8 @@ def special_rhs_for_paper_experiment(k_list,num_system,num_rhs,
 
                     # measure L^2 norm of rhs as proxy
 
+                    prob.rhs_nbpc_norm
+
                     # store error and rhs
 
                     print("In progress")

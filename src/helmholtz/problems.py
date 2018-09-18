@@ -322,6 +322,8 @@ class HelmholtzProblem(object):
         
         self._L = fd.inner(A_right * fd.grad(f),fd.grad(self._v))*fd.dx
 
+        self.rhs_nbpc_norm = norm(A_right * fd.grad(f),norm_type="L2")
+
         
         
 

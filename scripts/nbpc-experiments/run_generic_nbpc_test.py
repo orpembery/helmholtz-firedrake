@@ -1,4 +1,4 @@
-import nearby_preconditioning_tests as nbpc
+import nearby_preconditioning.experiments as nbpc
 
 A_pre_type = 'constant'
 

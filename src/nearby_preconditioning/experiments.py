@@ -204,6 +204,8 @@ def nearby_preconditioning_piecewise_experiment_set(
 
                 for modifier in noise_modifier_list:
 
+                    print(k,h_tuple,noise_master,modifier)
+                    
                     A_modifier = h ** modifier[0] * k**modifier[1]
                     n_modifier = h ** modifier[2] * k**modifier[3]
                     A_noise_level = A_noise_master * A_modifier

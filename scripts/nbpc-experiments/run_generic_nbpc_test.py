@@ -16,7 +16,7 @@ h_list = [(1.0,-1.0),(1.0,-1.5),(1.0,-2.0)]
 
 noise_master_level_list = [(0.1,0.0)]
 
-noise_modifier_list = [(0.0,-1.0,0.0,-0.0),(-1.0,0.0,0.0,-0.0)]
+noise_modifier_list = [(0.0,-1.0,0.0,0.0),(1.0,0.0,0.0,0.0)]
 
 save_location = '/home/owen/Documents/code/helmholtz-firedrake/output-to-copy-to-x/nbpc-paper/initial-test-of-A-condition/'
 

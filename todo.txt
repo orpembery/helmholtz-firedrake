@@ -6,3 +6,5 @@ Figure out whether non-constant on the boundary is an issue
 Change mesh_size to make it work in 3-d
 Change naming of *CoeffGenerator to *Coeff and update throughout
 Check reference to monotonic in coeff definition
+Tests for NT coeffs
+Decide whether to have a `deterministic override' on the random coefficients

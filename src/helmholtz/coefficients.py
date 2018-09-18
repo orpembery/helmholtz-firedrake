@@ -234,11 +234,10 @@ class GammaConstantCoeffGenerator(object):
 
         self._coeff_rand.assign(np.random.gamma(self._shape,self._scale))
 
-class SmoothNTCoeff(object):
-    """Generates random, smooth, NT(mu) almost surely coefficients.
+class SmoothRealNTCoeff(object):
+    """Generates random, smooth, real, NT(mu) a.s. coefficients.
 
-    For a definition of NT(mu), see [Graham, Pembery, Spence, Journal of
-    Differential Equations (2018), to appear].
+    For a definition of NT(mu), see [Pembery, Spence, arXiv:1805.00282].
     """
 
     def __init__(self,mesh,x_centre,N,delta,
@@ -256,7 +255,7 @@ class SmoothNTCoeff(object):
         The terms a_j are uniformly distributed on
         [series_term_lower,series_term_upper]
 
-        Parameter:
+        Parameters:
 
         mesh - a Firedrake Mesh - the mesh on which the problem is
         defined.
@@ -324,15 +323,85 @@ class SmoothNTCoeff(object):
         
         return self._coeff_values[0]\
             * self._delta / (self._r_max + self._delta)**2
-        
-class LInfinityMonotonicCoeff(object):
-    """Generates piecewise-smooth coefficients that are monotonic.
 
-    'Monotic' means that the coefficients are monotonically
-    non-decreasing in the radial direction in the sense of [Graham,
-    Pembery, Spence, Journal of Differential Equations (2018), to
-    appear, Condition 2.6].
+class SmoothMatrixNTCoeff(object):
+    """Generates random, smooth, matrix-valued, NT(mu) a.s. coeffs.
+
+    For a definition of NT(mu), see [Pembery, Spence, arXiv:1805.00282].
     """
+
+    def __init__(self,A_max,A_var_max,m,p,q):
+        """Initialises the coefficient.
+
+        The coefficient is of the form
+
+        A = A_max * I - [[a*r^m, b*r^p], [b*r^p,c*r^q]], where a, b, and c are
+        reals with a,c ~ Unif(0,A_norm_max) and b ~
+        Unif(-sqrt(a*c),sqrt(a*c)**2, m, p, and q are reals with m, q >= p, and
+        r = |x| + 1.
+
+        Parameters:
+
+        A_max - postive real - the maximum pointwise 
+
+        A_var_max - postive real - the maximum that the elementwise
+        L^\infty norm of the 'variable part' of A can be.
+
+        m, p, q - reals - must satisfy the relations m, q >= p.
+        """
+
+        self._A_norm_max = A_norm_max
+
+        self._m = m
+        
+        self._p = p
+
+        self._q = q
+
+        self._coeff_values = []
+        
+        for ii in range(3):
+            self._coeff_values.append(np.array(0.0))
+                
+        self._coeff_values = [fd.Constant(coeff_dummy,domain=mesh)
+                              for coeff_dummy in self._coeff_values]
+
+        x = fd.SpatialCoordinate(mesh)
+
+        r = abs(x) + 1.0
+        
+        self.A = fd.as_matrix(np.array([[self._coeff_values[0] * r**self._m,
+                                         self._coeff_values[1] ** r**self._p],
+                                        [self._coeff_values[1] ** r**self._p,
+                                         self._coeff_values[2] ** r**self._q]]
+        ))
+
+        self.sample()
+
+    def sample(self):
+        """Sample the coefficient."""
+
+        self._coeff_values[0].assign(
+            self._A_norm_max * np.random.random_sample())
+
+        self._coeff_values[2].assign(
+            self._A_norm_max * np.random.random_sample())
+
+        sqrt_a_c = np.sqrt(
+            self._coeff_values[0].evaluate(None,None,None,None)
+            * self._coeff_values[2].evaluate(None,None,None,None))
+
+        self._coeff_values[1].assign(
+            2.0 * sqrt_a_c * np.random.random_sample() - sqrt_a_c)
+        
+#class LInfinityMonotonicCoeff(object):
+    #"""Generates piecewise-smooth coefficients that are monotonic.
+
+    #'Monotic' means that the coefficients are monotonically
+    #non-decreasing in the radial direction in the sense of [Graham,
+    #Pembery, Spence, Journal of Differential Equations (2018), to
+    #appear, Condition 2.6].
+    #"""
 
     # This has been shelved until the ufl.And has been fixed in complex
 

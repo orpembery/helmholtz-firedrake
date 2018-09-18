@@ -1,0 +1,12 @@
+Git hash,4bac0a36497b21974b4077df726730040c2418ac
+Date/Time,2018-07-23T14:21:03.615800
+k,10
+mesh_condition,1.5
+coeff_pieces,10
+n_background,constant
+noise_level_n,0.03162277660168379
+A_background,constant
+noise_level_A,0.01
+num_repeats,1
+Iteration number,Number of GMRES iterations
+0,4

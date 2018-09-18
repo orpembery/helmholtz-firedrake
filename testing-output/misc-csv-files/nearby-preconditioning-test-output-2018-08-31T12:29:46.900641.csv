@@ -1,0 +1,16 @@
+Git hash,820e64183271de47aea3820d239ee7c710a8a00e
+Date/Time,2018-08-31T12:29:46.900641
+n_var_k_power,0.0
+f,0.0
+num_repeats,1
+n_lower_bound,0.5
+shape,250.0
+k,10.0
+WARNING,HIGHLY EXPERIMENTAL. BELOW DATA MAY MEAN NOTHING.
+scale,0.002
+n_var_base,0.001
+h,k**(-1.5)
+function,nearby_preconditioning_test_gamma
+g,1.0
+n_pre,1.0
+0,76

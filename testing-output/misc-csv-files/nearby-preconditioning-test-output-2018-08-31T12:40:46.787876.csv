@@ -1,0 +1,12 @@
+Git hash,820e64183271de47aea3820d239ee7c710a8a00e
+Date/Time,2018-08-31T12:40:46.787876
+A_pre_type,constant
+modifier,"(0.0, 0.0, 0.0, 0.0)"
+num_pieces,2
+noise_master,"(0.01, 0.1)"
+n_pre_type,constant
+k,10.0
+num_repeats,2
+h_tuple,"(1.0, -1.0)"
+0,6
+1,7

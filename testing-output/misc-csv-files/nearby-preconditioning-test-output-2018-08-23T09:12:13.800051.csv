@@ -1,0 +1,23 @@
+Git hash,9f0494ccb99b8302513ce8205bee3f9adfa8b4d1
+Date/Time,2018-08-23T09:12:13.800051
+f,0.0
+n_lower_bound,0.5
+g,1.0
+h,k**(-1.5)
+n_var_base,0.1
+n_pre,1.0
+function,nearby_preconditioning_test_gamma
+num_repeats,10
+n_var_k_power,0.0
+shape,2.5
+scale,0.2
+0,80
+1,72
+2,60
+3,78
+4,82
+5,58
+6,82
+7,74
+8,78
+9,69

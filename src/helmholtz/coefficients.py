@@ -118,7 +118,7 @@ class PiecewiseConstantCoeffGenerator(object):
         if self._coeff_dims == [2,2]\
                 and coeff_pre != fd.as_matrix([[1.0,0.0],[0.0,1.0]]):
 
-            warnings.warn("coeff_pre is not the identity. There is not\
+            warnings.warn("coeff_pre is not the identity. There is no\
             guarantee that the randomly-generated matrices are\
             positive-definite, or have the correct amount of noise.")
         

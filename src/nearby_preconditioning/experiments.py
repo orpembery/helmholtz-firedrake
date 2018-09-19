@@ -106,8 +106,7 @@ def nearby_preconditioning_piecewise_experiment_set(
     (respectively) base_noise_A * h**t[0] * k**t[1] and base_noise_n *
     h**t[2] * k**t[3].
 
-    save_location - string specifying the absolute path for the the
-    folder in which to save the .csv output files.
+    save_location - see utils.write_repeats_to_csv.
     """
 
     if not(isinstance(A_pre_type,str)):
@@ -292,8 +291,10 @@ def nearby_preconditioning_experiment_gamma(k_range,n_lower_bound,n_var_base,
             
             hh_utils.write_GMRES_its(GMRES_its,save_location,info)
 
-def special_rhs_for_paper_experiment(k_list,num_system,num_rhs,
-                                     fine_grid_refinement):
+def special_rhs_for_paper_experiment(k_list,h_power_list,num_pieces,
+                                     noise_level_system_A,noise_level_system_n,
+                                     noise_level_rhs_A,num_system,num_rhs,
+                                     fine_grid_refinement,seed,save_location):
     """Tests to see if the required condition in the paper holds.
 
     For a variety of different Helmholtz systems, and a variety of
@@ -309,6 +310,25 @@ def special_rhs_for_paper_experiment(k_list,num_system,num_rhs,
     k_list - list of positive integers - the values of k for which
     experiments will be done.
 
+    h_power_list - list of reals defining the dependence of the
+    different values of h upon k. For example, if h_power_list =
+    [-1.0,-1.5] then two sets of experiments will be done, one with h ~
+    k**-1.0 and one with h**-1.5.
+
+    num_pieces - postive integer - the random coefficients will be
+    piecewise-constant on a num_pieces by num_pieces grid. (See notes in
+    coefficients.PiecewiseConstantCoeffGenerator about the limits on
+    num_pieces.)
+
+    noise_level_system_A - positive real - the size of the random
+    perturbations in the coefficient A defining the Helmholtz problem.
+
+    noise_level_system_n - positive real - the size of the random
+    perturbations in the coefficient n defining the Helmholtz problem.
+
+    noise_level_rhs_A - positive real - the size of the random
+    perturbations in the coefficient A defining right-hand side.
+
     num_system - positive integer - the number of different system
     matrices (i.e. A,n) for which to perform experiments.
 
@@ -322,17 +342,18 @@ def special_rhs_for_paper_experiment(k_list,num_system,num_rhs,
     the grid for computing the `true' solution will have a mesh size
     2^{-3} = 3-times smaller than the finest grid used in any of the
     computations.)
+
+    seed - positive integer, not too large. Used to set the random seeds
+    in the generation of the random coefficients.
+
+    save_location - see helmholtz.utils.write_GMRES_its
     """
-
-    h_power_list = [-1.5,-2.0]
-
-    seed = 1.0
     
     smallest_mesh_size_num_points =\
         h_to_mesh_points(max(k_list)**min(h_power_list))
 
-    np.random.seed(seed)
-        
+    num_points_fine = smallest_mesh_size_num_points * fine_grid_refinement
+       
     for k in k_list:
 
         for h_power in h_power_list:
@@ -341,32 +362,197 @@ def special_rhs_for_paper_experiment(k_list,num_system,num_rhs,
             
             # Set up problem so that it can be easily altered
 
-            # For now, create a separate class that implements a very simple A and n, so that a more complicated one can always be substituted in later.
+            num_points_coarse = h_to_mesh_points(k**h_power)
+            
+            (prob_coarse,A_rhs_coarse,f_rhs_coarse) =\
+                rhs_paper_problem_setup(num_points_coarse,num_pieces,
+                                        noise_level_system_A,
+                                        noise_level_system_n,noise_level_rhs_A)
+
+            # Set up `fine' problem
+
+            (prob_fine,A_rhs_fine,f_rhs_fine) =\
+                rhs_paper_problem_setup(num_points_fine,num_pieces,
+                                        noise_level_system_A,
+                                        noise_level_system_n,noise_level_rhs_A)
             
             for ii_system in range(num_system):
 
-                # Set up `fine' problem
+                # What follows with constantly setting seeds is a bit of
+                # a hack - we need to get identical random numbers for
+                # both the coarse and fine problems, and this is the
+                # simplest way to do it (that I can think of).
+
+                # As random seeds, for the system use multiples of 2,
+                # and for the right-hand sides use the odd multiples of
+                # 3 (plus the input argument seed in both cases). Then
+                # no seed is ever used twice.
                 
-                # Sample system and update problem
+                np.random.seed(seed + 2.0*ii_system)
+
+                prob_coarse.A_stoch.sample()
+
+                prob_coarse.n_stoch.sample()
+
+                np.random.seed(seed + 2.0*ii_system)
+
+                prob_fine.A_stoch.sample()
+
+                prob_fine.n_stoch.sample()          
                 
                 for ii_rhs in range(num_rhs):
 
-                    # Sample rhs
+                    print("k, h_power, system number, rhs number")
+                    print(k, h_power, ii_system, ii_rhs)
 
-                    # Compute fine problem
+                    np.random.seed(seed + 3.0 + 6.0 * ii_rhs)
 
-                    # Compute coarse problem
+                    A_rhs_coarse.sample()
 
-                    # transfer coarse solution to fine mesh
+                    f_rhs_coarse.assign(np.random.normal(
+                        f_rhs_coarse.vector().array().size))
 
-                    # measure weighted H^1 norm of error
+                    np.random.seed(seed + 3.0 + 6.0 * ii_rhs)
 
-                    # measure L^2 norm of rhs as proxy
+                    A_rhs_fine.sample()
 
-                    prob.rhs_nbpc_norm
+                    f_rhs_fine.assign(np.random.normal(
+                        f_rhs_fine.vector().array().size))
+
+                    prob_coarse.solve()
+
+                    prob_fine.solve()
+
+                    u_h_coarse_to_fine = transfer_to_fine(
+                        prob_coarse.u_h,prob_fine.V)
+
+                    u_h_fine = prob_fine.u_h
+                    
+                    fem_err = hh_utils.norm_weighted(
+                        u_h_fine - u_h_coarse_to_fine,k)
+
+                    rhs_norm = prob.rhs_nbpc_norm
 
                     # store error and rhs
 
-                    print("In progress")
+                    storage[ii_system * num_rhs + ii_rhs,:] =\
+                        [fem_err,rhs_norm]
 
+                    info = {'k' : k,
+                            'h_power' : h_power,
+                            'num_pieces' : num_pieces,
+                            'noise_level_system_A' : noise_level_system_A,
+                            'noise_level_system_n' : noise_level_system_n,
+                            'noise_level_rhs_A' : noise_level_rhs_A,
+                            'num_system' : num_system,
+                            'num_rhs' : num_rhs,
+                            'fine_grid_refinement' : fine_grid_refinement,
+                            'seed' : seed
+                    }        
+
+                    write_repeats_to_csv(storage,
+                                         save_location,
+                                         'testing-fem-error-with-special_rhs',
+                                         info)
+
+          
+def rhs_paper_problem_setup(num_points,num_pieces,noise_level_system_A,
+                            noise_level_system_n,noise_level_rhs_A):
+    """Sets up all the problems for the experiments with a special rhs.
+    
+    Parameters:
+
+    num_points - positive integer - the mesh for the problem will be a
+    num_points by num_points grid.
+
+    num_pieces - see  special_rhs_for_paper_experiment.
+
+    noise_level_system_A - see  special_rhs_for_paper_experiment.
+
+    noise_level_system_n - see  special_rhs_for_paper_experiment.
+
+    noise_level_rhs_A  - see  special_rhs_for_paper_experiment.
+
+    
+
+    Outputs:
+
+    Tuple (prob,A_rhs,f_rhs), where
+    
+    A_rhs - a matrix-valued realisation of
+    PiecewiseConstantCoeffGenerator, defined by the parameters
+    num_pieces and noise_level_rhs_A.
+
+    f_rhs - a firedrake Function, initialised as all zeros.
+
+    prob - a StochasticHelmholtzProblem with random coefficients defined
+    by the parameters num_points, noise_level_system_A, and
+    noise_level_system_n, and with a special right-hand side given by
+    A_rhs and f_rhs.
+    """
+
+    mesh = fd.UnitSquareMesh(numpoints,num_points)
+
+    A_system = coeff.PiecewiseConstantCoeffGenerator(mesh,num_pieces,
+                                                     noise_level_system_A,
+                                                     as_matrix(
+                                                         [[1.0,0.0],
+                                                          [0.0,1.0]]),
+                                                     [2,2])
+
+    n = coeff.PiecewiseConstantCoeffGenerator(mesh,num_pieces,
+                                              noise_level_system_n,1.0,[1])
+
+    V = fd.FunctionSpace(mesh,"CG",1)
             
+    prob = hh.StochasticHelmholtzProblem(k,V,A_stoch=A,n_stoch=n)
+
+    A_rhs = coeff.PiecewiseConstantCoeffGenerator(mesh,num_pieces,
+                                                  noise_level_rhs_A,
+                                                  as_matrix([[1.0,0.0],
+                                                             [0.0,1.0]]),
+                                                  [2,2])
+
+    f_rhs = fd.Function(mesh)
+
+    prob.set_rhs_nbpc_paper(A_rhs.coeff,f_rhs)
+
+    prob.force_lu()
+
+    return (prob,A_rhs,f_rhs)
+
+def transfer_to_fine(func,V_fine):
+    """Interpolates a Firedrake Function onto a finer mesh.
+    
+    The meshes don't have to be nested, although this (probably) only
+    works for nodal finite elements, and has only been tested on 1st
+    order CG elements in 2-d.
+
+    This code is courtesy of Jack Betteridge (University of Bath).
+
+    Parameters:
+
+    func - a Firedrake Function, to be interpolated.
+
+    V_fine - a Firedrake FunctionSpace, into which func will be
+    interpolated.
+
+    Output:
+
+    func_fine - a Firedrake Function defined on V_fine, given by func
+    interpolated into V_fine.
+    """
+
+    # This code currently doesn't work, due to a bug in complex.
+    
+    mesh_fine = V_fine.mesh()
+    V = func.function_space()
+
+    W = fd.VectorFunctionSpace(mesh_fine, V_fine.ufl_element())
+    coords = fd.interpolate(mesh_fine.coordinates, W)
+
+    func_fine = fd.Function(V_fine)
+
+    func_fine.dat.data[:] = func.at(coords.dat.data_ro)
+
+    return func_fine

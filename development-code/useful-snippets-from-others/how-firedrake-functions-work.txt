@@ -1,0 +1,3 @@
+From Andrew McRae on slack:
+
+Also, a Firedrake Function just stores the coefficients of the global basis functions. So each basis function is just (0, ..., 0, 1, 0, ..., 0)

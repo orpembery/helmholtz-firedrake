@@ -10,7 +10,7 @@ module load cmake/3.5.2
 module load intel/compiler/64/18.0.128
 module load slurm/16.05.3
 
-MAIN=/home/a/jdb55/scratch/firedrake-files
+MAIN=/home/a/orp20/scratch/firedrake-complex
 
 export PETSC_ARCH=arch-python-linux-x86_64
 export PETSC_DIR=${MAIN}/petsc

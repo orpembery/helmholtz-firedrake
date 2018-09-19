@@ -73,8 +73,12 @@ def write_repeats_to_csv(data,save_location,name_string,info):
         for ii in info.keys():
             file_writer.writerow([ii,info[ii]])
 
-        for ii in range(len(GMRES_its)):
-            file_writer.writerow([ii]+data[ii,:])
+        for ii in range(data.shape[0]):
+
+            if len(data.shape) == 1:
+                file_writer.writerow([ii,data[ii]])
+            else:            
+                file_writer.writerow(np.concatenate((np.array([ii]),data[ii,:])))
 
 
 def write_GMRES_its(GMRES_its,save_location,info):
@@ -112,10 +116,10 @@ def norm_weighted(u,k):
 
     k - positive real - the wavenumber.
 
-    Outputs:
+    Output:
 
-    w_norm - positive real - the weighted H^1 norm of u.
+    positive real - the weighted H^1 norm of u.
     """
 
-    return w_norm = np.sqrt(fd.norm(u,norm_type="H1")**2.0\
+    return np.sqrt(fd.norm(u,norm_type="H1")**2.0\
                             + (k**2.0 - 1.0)*fd.norm(u,norm_type="L2")**2.0)

@@ -34,7 +34,7 @@ def test_coeff_definition_error():
     # The code should catch the error and print a warning message, and
     # exit, not recording any GMRES iterations.
 
-    assert GMRES_its == []
+    assert GMRES_its.shape == (0,)
 
 def test_coeff_definition_no_error():
     """Test that a coeff with just too few many pieces is not caught."""
@@ -63,7 +63,7 @@ def test_coeff_definition_no_error():
     # The code should catch the error and print a warning message, and
     # exit, not recording any GMRES iterations.
 
-    assert GMRES_its != []
+    assert GMRES_its.shape != (0,)
 
 def test_coeff_being_updated():
     """Test that the random coefficients are actually updated."""
@@ -205,6 +205,6 @@ def test_nearby_preconditioning_set_no_errors():
     nbex.nearby_preconditioning_piecewise_experiment_set(
         'constant','constant',2,1,2,[10.0],[(1.0,-1.0)],[(0.01,0.1)],
         [(0.0,0.0,0.0,0.0)],
-        '/home/owen/Documents/code/helmholtz-firedrake/output/testing/'
+        '/home/owen/Documents/code/helmholtz-firedrake/testing-output/for-pytest/'
     )
 

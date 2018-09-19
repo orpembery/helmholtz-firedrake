@@ -37,8 +37,8 @@ def nearby_preconditioning_experiment(V,k,A_pre,A_stoch,n_pre,n_stoch,f,g,
     num_repeats - int, specifying the number of realisations to take.
 
 
-    Returns: list of ints of length num_repeats, giving the number of
-    GMRES iterations for the different realisations.
+    Returns: numpy array of ints of length num_repeats, giving the
+    number of GMRES iterations for the different realisations.
     """
 
     prob = hh.StochasticHelmholtzProblem(
@@ -59,6 +59,8 @@ def nearby_preconditioning_experiment(V,k,A_pre,A_stoch,n_pre,n_stoch,f,g,
         all_GMRES_its.append(prob.GMRES_its)
 
         prob.sample()
+
+    all_GMRES_its  = np.array(all_GMRES_its)
 
     return all_GMRES_its
 

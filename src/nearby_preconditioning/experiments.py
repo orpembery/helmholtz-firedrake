@@ -48,6 +48,7 @@ def nearby_preconditioning_experiment(V,k,A_pre,A_stoch,n_pre,n_stoch,f,g,
     all_GMRES_its = []
 
     for ii_repeat in range(num_repeats):
+        print(ii_repeat)
         try:
             prob.solve()
         except RecursionError:

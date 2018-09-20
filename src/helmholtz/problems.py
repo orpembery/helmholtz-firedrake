@@ -390,6 +390,10 @@ class StochasticHelmholtzProblem(HelmholtzProblem):
             super().__init__(k, V, A=A_stoch.coeff, **kwargs)
         else:
             super().__init__(k, V, A=A_stoch.coeff, n=n_stoch.coeff,**kwargs)
+
+        self._A_stoch = A_stoch
+
+        self._n_stoch = n_stoch
             
     def sample(self):
         """Samples the coefficients A and n.

@@ -59,22 +59,11 @@ def nearby_preconditioning_experiment(V,k,A_pre,A_stoch,n_pre,n_stoch,f,g,
             
         all_GMRES_its.append(prob.GMRES_its)
 
-        check_problem_has_sampled(prob)
+        prob.sample()
 
     all_GMRES_its  = np.array(all_GMRES_its)
 
     return all_GMRES_its
-
-def check_problem_has_sampled(prob):
-    """Prob is a StochasticHelmholtzProblem."""
-
-    #print(prob._A_stoch._coeff_values[0].values())
-
-    [print(foo.values()) for foo in prob._A_stoch._coeff_values]
-
-    prob.sample()
-
-    #print(prob._A_stoch._coeff_values[0].values())
 
 def nearby_preconditioning_piecewise_experiment_set(
         A_pre_type,n_pre_type,num_pieces,seed,num_repeats,

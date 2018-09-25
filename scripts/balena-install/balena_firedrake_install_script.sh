@@ -52,9 +52,9 @@ cd ..
 ###
 # Download and install python3
 ###
-wget https://www.python.org/ftp/python/3.7.0/Python-3.7.0.tar.xz
+wget https://www.python.org/ftp/python/3.6.5/Python-3.6.5.tgz
 mkdir python3
-tar -xvf Python-3.7.0.tar.xz -C ./python3 --strip-components=1
+tar -xzvf Python-3.6.5.tgz -C ./python3 --strip-components=1
 unset PYTHON_DIR
 export PYTHON_DIR=${MAIN}/python3
 cd ./python3

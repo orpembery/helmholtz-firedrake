@@ -72,6 +72,9 @@ make -j 17 install
 export PATH="${PYTHON_DIR}/bin:$PATH"
 cd ..
 
+# Remove references to inbuilt python - crashes otherwise
+unset PYTHONHOME
+
 # May need:
 python3 -m ensurepip
 

@@ -118,7 +118,7 @@ class PiecewiseConstantCoeffGenerator(object):
         if self._coeff_dims == [2,2]\
                 and coeff_pre != fd.as_matrix([[1.0,0.0],[0.0,1.0]]):
 
-            warnings.warn("coeff_pre is not the identity. There is not\
+            warnings.warn("coeff_pre is not the identity. There is no\
             guarantee that the randomly-generated matrices are\
             positive-definite, or have the correct amount of noise.")
         
@@ -176,8 +176,8 @@ class PiecewiseConstantCoeffGenerator(object):
             coeff = self._noise_level*(
                 2.0 * np.random.random_sample(self._coeff_dims) - 1.0)
         elif self._coeff_dims == [2,2]:
-            a = -self._noise_level * np.random.random_sample(1)
-            c = -self._noise_level * np.random.random_sample(1)
+            a = self._noise_level * np.random.random_sample(1)
+            c = self._noise_level * np.random.random_sample(1)
             b_bound = min(self._noise_level,np.sqrt((1.0+a)*(1.0+c)))
             b = b_bound * (2.0 * np.random.random_sample(1) - 1.0)
 

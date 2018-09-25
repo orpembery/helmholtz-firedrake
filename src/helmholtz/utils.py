@@ -15,28 +15,32 @@ def h_to_mesh_points(h):
     """
     return np.ceil(np.sqrt(2.0)/h)
 
-def write_GMRES_its(GMRES_its,save_location,info):
-    """Writes the number of GMRES iterations, and other information, to
-    a .csv file.
+def write_repeats_to_csv(data,save_location,name_string,info):
+    """Writes the results of a number of experiments, to a .csv file.
 
     Parameters:
 
-    save_location - see nearby_preconditioning_test_set.
+    data - a numpy array containing the numerical data to be written to
+    the csv. Each row of the array should correspond to a different
+    repeat of the experiment.
 
-    GMRES_its - list of positive ints of length num_repeats (output of
-    nearby_preconditioning_test).
+    save_location - string containing the absolute path to the directory
+    in which the csv will be saved.
+
+    name_string - string containing the beginning of the filename for
+    the csv. The csv file will then have the filename given by
+    name_string + date_time + '.csv', where date_time is a string
+    containing the date and time.
 
     info - a dict containing all of the other information to be written
     to the file.
 
-    The output csv file will have the filename
-    'nearby-preconditioning-test-output-date_time.csv, where date_time
-    is the date and time. The rows of the file will consist of the hash
-    of the current git commit, then the date and time, then all of the
-    entries of info (where the value first column will be the key, and
-    the value in the second column will be the value in the dict),
-    followed by the GMRES iterations (repeat number in the first column,
-    number of GMRES iterations in the second).
+    The rows of the file will consist of the hash of the current git
+    commit, then the date and time, then all of the entries of info
+    (where the value first column will be the key, and the value in the
+    second column will be the value in the dict), followed by the
+    contents of data (the row number in the first column, and then the
+    columns of data in the subsequent columns.
     """
 
     # Check save_location is actually a directory path
@@ -56,8 +60,8 @@ def write_GMRES_its(GMRES_its,save_location,info):
   
     # Write CSV
     # from https://docs.python.org/3.5/library/csv.html
-    with open(save_location + 'nearby-preconditioning-test-output-'
-              + date_time + '.csv', 'w', newline = '') as csvfile:
+    with open(save_location + name_string + date_time + '.csv',
+              'w', newline = '') as csvfile:
         file_writer = csv.writer(csvfile, delimiter = ',',
                                  quoting = csv.QUOTE_MINIMAL)
         file_writer.writerow(['Git hash', git_hash_string])
@@ -69,5 +73,53 @@ def write_GMRES_its(GMRES_its,save_location,info):
         for ii in info.keys():
             file_writer.writerow([ii,info[ii]])
 
-        for ii in range(len(GMRES_its)):
-            file_writer.writerow([ii,GMRES_its[ii]])
+        for ii in range(data.shape[0]):
+
+            if len(data.shape) == 1:
+                file_writer.writerow([ii,data[ii]])
+            else:            
+                file_writer.writerow(np.concatenate((np.array([ii]),data[ii,:])))
+
+
+def write_GMRES_its(GMRES_its,save_location,info):
+    """Writes the number of GMRES iterations, and other information, to
+    a .csv file.
+
+    Parameters:
+
+    save_location - see write_repeats_to_csv.
+
+    GMRES_its - list of positive ints of length num_repeats (output of
+    nearby_preconditioning_test).
+
+    info - see write_repeats_to_csv
+
+    The output csv file will have the filename
+    'nearby-preconditioning-test-output-date_time.csv, where date_time
+    is the date and time. The rows of the file will consist of the hash
+    of the current git commit, then the date and time, then all of the
+    entries of info (where the value first column will be the key, and
+    the value in the second column will be the value in the dict),
+    followed by the GMRES iterations (repeat number in the first column,
+    number of GMRES iterations in the second).
+    """
+
+    write_repeats_to_csv(GMRES_its,save_location,
+                         'nearby-preconditioning-test-output-',info)
+
+def norm_weighted(u,k):
+    """Computes the weighted H^1 norm of u.
+
+    Inputs:
+
+    u - a Firedrake Function
+
+    k - positive real - the wavenumber.
+
+    Output:
+
+    positive real - the weighted H^1 norm of u.
+    """
+
+    return np.sqrt(fd.norm(u,norm_type="H1")**2.0\
+                            + (k**2.0 - 1.0)*fd.norm(u,norm_type="L2")**2.0)

@@ -1,15 +1,14 @@
 import firedrake as fd
 import numpy as np
-
 from helmholtz.problems import HelmholtzProblem
 
 N = 100
 
+k = 10.0
+
 mesh = fd.UnitSquareMesh(N,N)
 
 V = fd.FunctionSpace(mesh,"CG",1)
-
-k = 10.0
 
 prob = HelmholtzProblem(k,V)
 

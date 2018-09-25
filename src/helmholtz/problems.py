@@ -33,6 +33,8 @@ class HelmholtzProblem(object):
         for the solver to converge (equals -1 if solve() has not been
         called).
 
+        V - the Firedrake FunctionSpace on which u_h is defined.
+
     Methods defined:
 
         set_prop (where prop is one of k, A, n, A_pre, n_pre, f, g) -
@@ -94,14 +96,14 @@ class HelmholtzProblem(object):
 
         self.set_g(g)
 
-        self._V = V
+        self.V = V
 
         self._solver_params_override = False
 
         self.GMRES_its = -1
         """int - number of GMRES iterations. Initialised as -1."""
 
-        self.u_h = fd.Function(self._V)
+        self.u_h = fd.Function(self.V)
         """Firedrake function - initialised as zero function."""
 
     def solve(self):
@@ -127,9 +129,9 @@ class HelmholtzProblem(object):
         """
 
         # Define trial and test functions on the space
-        self._u = fd.TrialFunction(self._V)
+        self._u = fd.TrialFunction(self.V)
 
-        self._v = fd.TestFunction(self._V)
+        self._v = fd.TestFunction(self.V)
 
         # Define sesquilinear form and antilinear functional
         self._a = self._define_form(self._A,self._n)
@@ -250,7 +252,7 @@ class HelmholtzProblem(object):
         0.0.
         """
 
-        x = fd.SpatialCoordinate(self._V.mesh())
+        x = fd.SpatialCoordinate(self.V.mesh())
         
         if self._f == 0.0:
             self.set_f(x[0]-x[0])
@@ -274,9 +276,9 @@ class HelmholtzProblem(object):
 
         self.set_f(0.0)
 
-        x = fd.SpatialCoordinate(self._V.mesh())
+        x = fd.SpatialCoordinate(self.V.mesh())
 
-        nu = fd.FacetNormal(self._V.mesh())
+        nu = fd.FacetNormal(self.V.mesh())
         
         self.set_g(1j*self._k*fd.exp(1j*self._k*fd.dot(x,d))\
                    *(fd.dot(d,nu)-1.0))
@@ -298,7 +300,7 @@ class HelmholtzProblem(object):
         self._set_pre()
 
 
-    def set_rhs_nbpc_paper(self,A_right,alpha):
+    def set_rhs_nbpc_paper(self,A_right,f):
         """Sets rhs for usage in the nearby precon paper.
         
         Sets the right-hand side of the weak form to be the functional
@@ -311,16 +313,16 @@ class HelmholtzProblem(object):
         A_right - a matrix-valued function of the same type as A in
         HelmholtzProblem.
 
-        alpha - N-by-1 numpy array of complex numbers, where N is the
-        number of nodes in self.V.mesh.
+        f - A Firedrake Function defined on self.V
         """
-
-        f = fd.Function(self._V,val=alpha)
 
         if not self._initialised:
             self._initialise_problem()
         
         self._L = fd.inner(A_right * fd.grad(f),fd.grad(self._v))*fd.dx
+
+        self.rhs_nbpc_norm = fd.norm(A_right * fd.grad(f),
+                                     norm_type="L2")
 
         
         
@@ -388,6 +390,10 @@ class StochasticHelmholtzProblem(HelmholtzProblem):
             super().__init__(k, V, A=A_stoch.coeff, **kwargs)
         else:
             super().__init__(k, V, A=A_stoch.coeff, n=n_stoch.coeff,**kwargs)
+
+        self._A_stoch = A_stoch
+
+        self._n_stoch = n_stoch
             
     def sample(self):
         """Samples the coefficients A and n.

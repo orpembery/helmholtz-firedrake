@@ -18,7 +18,7 @@ def test_HelmholtzProblem_init_simple():
     prob = hh.HelmholtzProblem(k,V,A=A,n=n,A_pre=A_pre,n_pre=n_pre,f=f,g=g)
 
     assert prob._k == k
-    assert prob._V == V
+    assert prob.V == V
     assert prob._A == A
     assert prob._n == n
     assert prob._A_pre == A_pre
@@ -42,7 +42,7 @@ def test_HelmholtzProblem_init_f_zero():
     prob = hh.HelmholtzProblem(k,V,A=A,n=n,A_pre=A_pre,n_pre=n_pre,f=f,g=g)
 
     assert prob._k == k
-    assert prob._V == V
+    assert prob.V == V
     assert prob._A == A
     assert prob._n == n
     assert prob._A_pre == A_pre
@@ -67,7 +67,7 @@ def test_HelmholtzProblem_init_g_zero():
     prob = hh.HelmholtzProblem(k,V,A=A,n=n,A_pre=A_pre,n_pre=n_pre,f=f,g=g)
 
     assert prob._k == k
-    assert prob._V == V
+    assert prob.V == V
     assert prob._A == A
     assert prob._n == n
     assert prob._A_pre == A_pre
@@ -92,7 +92,7 @@ def test_HelmholtzProblem_init_f_g_zero():
     prob = hh.HelmholtzProblem(k,V,A=A,n=n,A_pre=A_pre,n_pre=n_pre,f=f,g=g)
 
     assert prob._k == k
-    assert prob._V == V
+    assert prob.V == V
     assert prob._A == A
     assert prob._n == n
     assert prob._A_pre == A_pre
@@ -116,7 +116,7 @@ def test_HelmholtzProblem_init_no_pc():
     prob = hh.HelmholtzProblem(k,V,A=A,n=n,A_pre=A_pre,n_pre=n_pre,f=f,g=g)
 
     assert prob._k == k
-    assert prob._V == V
+    assert prob.V == V
     assert prob._A == A
     assert prob._n == n
     assert prob._A_pre == A_pre
@@ -142,7 +142,7 @@ def test_HelmholtzProblem_init_one_pc_none():
     prob._initialise_problem()
 
     assert prob._k == k
-    assert prob._V == V
+    assert prob.V == V
     assert prob._A == A
     assert prob._n == n
     assert prob._a_pre == None

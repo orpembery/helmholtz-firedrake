@@ -33,7 +33,7 @@ cd ./petsc
 # Configure PETSc
 # remove --prefix??
 # Last two options weren't in Jack's script, but were passed by the complex install script
-./configure --with-shared-libraries=1 --with-debugging=0 --with-c2html=0 --with-cc=mpiicc --with-cxx=mpiicpc --with-fc=mpiifort --download-fblaslapack --download-eigen --with-fortran-bindings=0 --download-chaco --download-metis --download-parmetis --download-scalapack --download-hypre --download-mumps --download-netcdf --download-hdf5 --download-pnetcdf --download-exodusii --with-scalar-type=complex
+./configure --with-shared-libraries=1 --with-debugging=0 --with-c2html=0 --with-cc=mpiicc --with-cxx=mpiicpc --with-fc=mpiifort --download-fblaslapack --download-eigen --with-fortran-bindings=0 --download-chaco --download-metis --download-parmetis --download-scalapack --download-hypre --download-mumps --download-netcdf --download-hdf5 --download-pnetcdf # --download-exodusii --with-scalar-type=complex
 
 # Build PETSc
 make -j 17 PETSC_DIR=${MAIN}/petsc PETSC_ARCH=arch-python-linux-x86_64 all
@@ -42,7 +42,7 @@ make -j 17 PETSC_DIR=${MAIN}/petsc PETSC_ARCH=arch-python-linux-x86_64 all
 #make -j 17 PETSC_DIR=${MAIN}/petsc PETSC_ARCH=arch-python-linux-x86_64 install
 # CHECK???
 make -j 17 PETSC_DIR=${MAIN}/petsc PETSC_ARCH=arch-python-linux-x86_64 check
-make -j 17 PETSC_DIR=${MAIN}/petsc PETSC_ARCH=arch-python-linux-x86_64 streams
+#make -j 17 PETSC_DIR=${MAIN}/petsc PETSC_ARCH=arch-python-linux-x86_64 streams # This checks the scaling and is optional
 
 
 # Set PETSc directory
@@ -52,9 +52,9 @@ cd ..
 ###
 # Download and install python3
 ###
-wget https://www.python.org/ftp/python/3.6.5/Python-3.6.5.tgz
+wget https://www.python.org/ftp/python/3.7.0/Python-3.7.0.tar.xz
 mkdir python3
-tar -xzvf Python-3.6.5.tgz -C ./python3 --strip-components=1
+tar -xvf Python-3.7.0.tar.xz -C ./python3 --strip-components=1
 unset PYTHON_DIR
 export PYTHON_DIR=${MAIN}/python3
 cd ./python3
@@ -90,7 +90,7 @@ module unload python/2.7.8
 
 export INTEL_LICENSE_FILE=/cm/shared/licenses/intel/
 ### This line doesn't work, python3 complains about not being able to find encodings module, but then runs fine in terminal after
-python3 -i firedrake-install --mpicc=mpiicc --mpicxx=mpiicpc --mpif90=mpiifort --no-package-manager --disable-ssh --honour-petsc-dir
+python3 firedrake -install --mpicc=mpiicc --mpicxx=mpiicpc --mpif90=mpiifort --no-package-manager --disable-ssh --honour-petsc-dir
 
 # Add paths to .bashrc (only do this once!)
 # echo PETSC_DIR=${MAIN}/petsc >> ~/.bashrc

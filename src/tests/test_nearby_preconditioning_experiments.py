@@ -6,7 +6,6 @@ from helmholtz.coefficients import PiecewiseConstantCoeffGenerator
 import helmholtz.utils as hh_utils
 import copy
 
-# nbpc test - throws right error with 13/14
 def test_coeff_definition_error():
     """Test that a coeff with too many pieces is caught."""
     k = 20.0
@@ -60,8 +59,7 @@ def test_coeff_definition_no_error():
     GMRES_its = nbex.nearby_preconditioning_experiment(V,k,A_pre,A_stoch,
                                 n_pre,n_stoch,f,g,num_repeats)
 
-    # The code should catch the error and print a warning message, and
-    # exit, not recording any GMRES iterations.
+    # The code should not error.
 
     assert GMRES_its.shape != (0,)
 
@@ -205,6 +203,6 @@ def test_nearby_preconditioning_set_no_errors():
     nbex.nearby_preconditioning_piecewise_experiment_set(
         'constant','constant',2,1,2,[10.0],[(1.0,-1.0)],[(0.01,0.1)],
         [(0.0,0.0,0.0,0.0)],
-        '/home/owen/Documents/code/helmholtz-firedrake/testing-output/for-pytest/'
+        '/home/owen/code/helmholtz-firedrake/testing-output/for-pytest/'
     )
 

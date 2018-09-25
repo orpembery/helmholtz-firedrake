@@ -93,7 +93,7 @@ module unload python/2.7.8
 
 export INTEL_LICENSE_FILE=/cm/shared/licenses/intel/
 ### This line doesn't work, python3 complains about not being able to find encodings module, but then runs fine in terminal after
-python3 firedrake -install --mpicc=mpiicc --mpicxx=mpiicpc --mpif90=mpiifort --no-package-manager --disable-ssh --honour-petsc-dir
+python3 firedrake-install --mpicc=mpiicc --mpicxx=mpiicpc --mpif90=mpiifort --no-package-manager --disable-ssh --honour-petsc-dir
 
 # Add paths to .bashrc (only do this once!)
 # echo PETSC_DIR=${MAIN}/petsc >> ~/.bashrc

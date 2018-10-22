@@ -1,3 +1,3 @@
-This code is currently a bit of a mish-mash, but will evolve over time into an implementation of the Helmholtz equation with heterogeneous (and random) coefficients, implemented in Firedrake.
+This code will (I hope) evolve into a small library of code to allow one to solve the Helmholtz equation using the Firedrake numerical PDE software.
 
-Current focus is testing nearby preconditioning.
+Currently, one can specify a Helmholtz problem, or a stochastic Helmholtz problem on the unit square, and then solve it. One can also specify one of a range of stochastic coefficients.

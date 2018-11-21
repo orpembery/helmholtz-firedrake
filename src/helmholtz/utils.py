@@ -12,8 +12,33 @@ def h_to_mesh_points(h):
     Parameter:
 
     h - positive float - the mesh size.
+
+    Output:
+
+    positive int - the number of points to use in both the x- and
+    y-directions.
     """
     return np.ceil(np.sqrt(2.0)/h)
+
+def mesh_points_to_h(num_points_x,num_points_y):
+    """Converts the number of points in a Firedrake 2-D UnitSquareMesh
+    into the mesh size.
+
+    Parameters:
+
+    num_points_x - positive int - the number of points in the
+    x-direction.
+
+    num_points_y - positive int - the number of points in the
+    y-direction.
+
+    Output:
+
+    positive float - the mesh size.
+    """
+
+    return np.sqrt(1.0/(float(num_points_x-1)**2)
+                   + 1.0/(float(num_points_y-1)**2))
 
 def write_repeats_to_csv(data,save_location,name_string,info):
     """Writes the results of a number of experiments, to a .csv file.

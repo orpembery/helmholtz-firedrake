@@ -5,6 +5,8 @@ This code will (I hope) evolve into a small library of code to allow one to solv
 
 Currently, one can specify a Helmholtz problem, or a stochastic Helmholtz problem on the unit square, and then solve it. One can also specify one of a range of stochastic coefficients.
 
+It is ery much under development, so the functionality could change (or even be removed) without warning. Although if this causes an issue, let Owen Pembery know!
+
 ## Documentation ##
 Currently, it's a case of 'read the source code'. The documentation there should be fairly reasonable.
 

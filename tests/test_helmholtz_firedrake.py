@@ -1,8 +1,8 @@
-import helmholtz.problems as hh
+import helmholtz_firedrake.problems as hh
 import firedrake as fd
 import numpy as np
 import pytest
-from helmholtz.coefficients import PiecewiseConstantCoeffGenerator
+from helmholtz_firedrake.coefficients import PiecewiseConstantCoeffGenerator
 
 def test_HelmholtzProblem_init_simple():
     """Test a simple setup."""

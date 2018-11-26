@@ -1,8 +1,1 @@
-*.vtu
-*.pvd
-/output/testing
-__pycache__
-*~
-.pytest_cache
-output-to-copy-to-x/
-*.ods
+.pytest_cache/

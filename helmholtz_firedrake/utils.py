@@ -2,6 +2,7 @@ import numpy as np
 import subprocess
 import datetime
 import csv
+from firedrake import norm
 
 def h_to_mesh_points(h):
     """Converts a mesh size to a number of points giving that mesh size.
@@ -146,5 +147,5 @@ def norm_weighted(u,k):
     positive real - the weighted H^1 norm of u.
     """
 
-    return np.sqrt(fd.norm(u,norm_type="H1")**2.0\
-                            + (k**2.0 - 1.0)*fd.norm(u,norm_type="L2")**2.0)
+    return np.sqrt(norm(u,norm_type="H1")**2.0\
+                            + (k**2.0 - 1.0)*norm(u,norm_type="L2")**2.0)

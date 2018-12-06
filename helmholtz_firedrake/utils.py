@@ -48,7 +48,9 @@ def write_repeats_to_csv(data,save_location,name_string,info):
 
     data - a numpy array containing the numerical data to be written to
     the csv. Each row of the array should correspond to a different
-    repeat of the experiment.
+    repeat of the experiment. Note that the rows of data will be
+    numbered automatically, so there's no need to include these numbers
+    as a separate column in data itself.
 
     save_location - string containing the absolute path to the directory
     in which the csv will be saved.
@@ -59,7 +61,7 @@ def write_repeats_to_csv(data,save_location,name_string,info):
     containing the date and time.
 
     info - a dict containing all of the other information to be written
-    to the file.
+    to the file. None of the keys of the dict should be the integer 0.
 
     The rows of the file will consist of the hash of the current git
     commit, then the date and time, then all of the entries of info
@@ -67,6 +69,7 @@ def write_repeats_to_csv(data,save_location,name_string,info):
     second column will be the value in the dict), followed by the
     contents of data (the row number in the first column, and then the
     columns of data in the subsequent columns.
+
     """
 
     # Check save_location is actually a directory path
@@ -89,7 +92,7 @@ def write_repeats_to_csv(data,save_location,name_string,info):
     with open(save_location + name_string + date_time + '.csv',
               'w', newline = '') as csvfile:
         file_writer = csv.writer(csvfile, delimiter = ',',
-                                 quoting = csv.QUOTE_MINIMAL)
+                                 quoting = csv.QUOTE_NONNUMERIC)
         file_writer.writerow(['Git hash', git_hash_string])
 
         # Current time in UTC as an ISO string
@@ -106,8 +109,57 @@ def write_repeats_to_csv(data,save_location,name_string,info):
             else:            
                 file_writer.writerow(np.concatenate((np.array([ii]),data[ii,:])))
 
+def read_repeats_from_csv(save_location):
+    """Reads repeats, and metadata from a csv file.
+
+    This function assumes the csv file has been saved by
+    write_repeats_to_csv.
+
+    Parameters:
+
+    save_location - string, specifying the location of the csv file
+    (including the filename).
+
+    Output:
+
+    a tuple (info,data), where info is a dict, containing the
+    information that would have been passed into write_repeats_to_csv as
+    thei nput argument 'info', and data is a numpy array containing the
+    data that would have been passed in to write_repeats_to_csv as
+    'data'.
+
+    """
+
+    info = dict()
+    
+    # adapted from https://docs.python.org/3.5/library/csv.html
+    with open(save_location,
+               newline = '') as csvfile:
+        file_reader = csv.reader(csvfile,delimiter=',',quoting=csv.QUOTE_NONNUMERIC)
+        reached_GMRES = False
+        for row in file_reader:
+            print(row)
+            if row[0] == 0:
+                reached_GMRES = True
+                data = np.array(row)
+                # ABOVE MAY NOT WORK if row is very long or array method doesn't work
+                if reached_GMRES == False:
+                    # Technically from https://stackoverflow.com/a/1024851
+                    info[row[0]] = row[1]
+                else:
+                    np.concatenate((data,row))
+
+    return (info,data)
+            
+
+    # go down the rows putting stuff into the dict until the first column is 0
+
+    # Then great a numpy array of the correct width, call it data
+    
+    # Then switch to putting it into data
 
 def write_GMRES_its(GMRES_its,save_location,info):
+
     """Writes the number of GMRES iterations, and other information, to
     a .csv file.
 

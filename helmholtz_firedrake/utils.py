@@ -188,7 +188,7 @@ def csv_list_to_dataframe(csv_list,names_list):
     the csv files read in. The rows are indexed by the fields given in
     names_list.
     """
-    import pdb; pdb.set_trace()    
+
     labels = []
 
     for csv_file in csv_list:

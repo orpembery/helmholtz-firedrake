@@ -5,42 +5,48 @@ import csv
 from firedrake import norm
 import pandas as pd
 
-def h_to_mesh_points(h):
-    """Converts a mesh size to a number of points giving that mesh size.
+def h_to_num_cells(h,d):
+    """Converts a mesh size to a number of cells giving that mesh size.
 
     Given a mesh size h, computes the arguments to Firedrake's
-    UnitSquareMesh that will give (at most) that mesh size in 2D.
-
-    Parameter:
-
-    h - positive float - the mesh size.
-
-    Output:
-
-    positive int - the number of points to use in both the x- and
-    y-directions.
-    """
-    return np.ceil(np.sqrt(2.0)/h)
-
-def mesh_points_to_h(num_points_x,num_points_y):
-    """Converts the number of points in a Firedrake 2-D UnitSquareMesh
-    into the mesh size.
+    UnitSquareMesh or UnitCubeMesh that will give (at most) that mesh size in 2D.
 
     Parameters:
 
-    num_points_x - positive int - the number of points in the
-    x-direction.
+    h - positive float - the mesh size.
 
-    num_points_y - positive int - the number of points in the
-    y-direction.
+    d - 2 or 3 - the geometric dimension of the mesh
+
+    Output:
+
+    positive int - the number of cells to use in both the x- and
+    y-directions.
+    """
+    return np.ceil(np.sqrt(float(d))/h)
+
+def num_cells_to_h(num_cells_tuple,d):
+    """Converts the number of points in a Firedrake UnitSquareMesh or
+    UnitCubeMesh into the mesh size.
+
+    Parameters:
+
+    num_cells_tuple - tuple of length d of positive ints - the number of
+    cells in each direction.
+
+    d - 2 or 3.
 
     Output:
 
     positive float - the mesh size.
+
     """
 
-    return np.sqrt(1.0/(float(num_points_x-1)**2)
-                   + 1.0/(float(num_points_y-1)**2))
+    assert len(num_cells_tuple) == d
+    
+    # This is a bit of hack, may be a cleaner way to do it
+    return np.sqrt(np.array(
+        [1.0/float(num_cells**2) for num_cells in num_cells_tuple]
+    ).sum())
 
 def write_repeats_to_csv(data,save_location,name_string,info):
     """Writes the results of a number of experiments, to a .csv file.

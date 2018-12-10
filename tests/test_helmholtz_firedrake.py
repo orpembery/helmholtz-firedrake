@@ -1,4 +1,5 @@
 import helmholtz_firedrake.problems as hh
+import helmholtz_firedrake.utils as utils
 import firedrake as fd
 import numpy as np
 import pytest
@@ -451,3 +452,23 @@ def test_n_stoch_none():
         mesh,2,0.1,fd.as_matrix([[1.0,0.0],[0.0,1.0]]),[2,2])
 
     prob = hh.StochasticHelmholtzProblem(k,V,A_stoch=A_stoch)
+
+def test_h_to_mesh_points_2():
+    """Test that h_to_num_cells works in 2-D."""
+
+    assert np.isclose(utils.h_to_num_cells(0.1,2),np.ceil(np.sqrt(2.0)/0.1))
+
+def test_h_to_mesh_points_3():
+    """Test that h_to_num_cells works in 3-D."""
+
+    assert np.isclose(utils.h_to_num_cells(0.1,3),np.ceil(np.sqrt(3.0)/0.1))
+
+def test_mesh_points_to_h_2():
+    """Test that num_cells_to_h works in 2-D."""
+
+    assert np.isclose(utils.num_cells_to_h((100,100),2),np.sqrt(2.0)/100.0)
+
+def test_mesh_points_to_h_3():
+    """Test that num_cells_to_h works in 3-D."""
+
+    assert np.isclose(utils.num_cells_to_h((100,100,100),3),np.sqrt(3.0)/100.0)

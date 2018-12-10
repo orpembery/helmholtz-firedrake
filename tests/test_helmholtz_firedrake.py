@@ -472,3 +472,8 @@ def test_mesh_points_to_h_3():
     """Test that num_cells_to_h works in 3-D."""
 
     assert np.isclose(utils.num_cells_to_h((100,100,100),3),np.sqrt(3.0)/100.0)
+
+def test_bounded_error_mesh_size():
+    """Test utils.bounded_error_mesh_size."""
+
+    assert np.isclose(utils.bounded_error_mesh_size(1),1.5)

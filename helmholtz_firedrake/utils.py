@@ -2,7 +2,7 @@ import numpy as np
 import subprocess
 import datetime
 import csv
-from firedrake import norm
+from firedrake import norm, sign, real
 import pandas as pd
 
 def h_to_num_cells(h,d):
@@ -292,3 +292,23 @@ def bounded_error_mesh_size(p):
     """
 
     return (p+2)/(p+1)
+
+def heaviside(x):
+    """Defines the heaviside step function in UFL.
+
+    Parameters:
+
+    x - single coordinate of a UFL SpatialCoordinate.
+    """
+    return 0.5 * (sign(real(x)) + 1.0)
+
+def Iab(x,a,b) :
+    """Indicator function on [a,b] in UFL.
+
+    Parameters:
+
+    x - single coordinate of a UFL SpatialCoordinate.
+
+    a, b - floats, a < b.
+    """
+    return heaviside(x-a) - heaviside(x-b)

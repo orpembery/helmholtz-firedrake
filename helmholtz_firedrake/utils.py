@@ -272,3 +272,23 @@ def norm_weighted(u,k):
 
     return np.sqrt(norm(u,norm_type="H1")**2.0\
                             + (k**2.0 - 1.0)*norm(u,norm_type="L2")**2.0)
+
+def bounded_error_mesh_size(p):
+    """Gives the exponent for the mesh size that keeps relative error
+    bounded for p-FEs.
+
+    It is not proven that this mesh size is sufficient to keep the
+    relative error bounded for degree p finite-elements, but it seems to
+    work.
+
+    Parameter:
+
+    p - positive int - the degree of the finite-element basis functions.
+
+    Output:
+
+    exponent - positive float - number such that the relative error in
+    the finite-element method is bounded if $h \sim k^exponent$.
+    """
+
+    return (p+2)/(p+1)

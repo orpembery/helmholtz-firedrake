@@ -3,6 +3,7 @@ import subprocess
 import datetime
 import csv
 from firedrake import norm
+import pandas as pd
 
 def h_to_mesh_points(h):
     """Converts a mesh size to a number of points giving that mesh size.
@@ -107,7 +108,8 @@ def write_repeats_to_csv(data,save_location,name_string,info):
             if len(data.shape) == 1:
                 file_writer.writerow([ii,data[ii]])
             else:            
-                file_writer.writerow(np.concatenate((np.array([ii]),data[ii,:])))
+                file_writer.writerow(np.concatenate((np.array([ii]),
+                                                     data[ii,:])))
 
 def read_repeats_from_csv(save_location):
     """Reads repeats, and metadata from a csv file.
@@ -129,35 +131,98 @@ def read_repeats_from_csv(save_location):
     'data'.
 
     """
-
+    
     info = dict()
     
     # adapted from https://docs.python.org/3.5/library/csv.html
     with open(save_location,
                newline = '') as csvfile:
-        file_reader = csv.reader(csvfile,delimiter=',',quoting=csv.QUOTE_NONNUMERIC)
+
+        file_reader = csv.reader(csvfile,delimiter=',',
+                                 quoting=csv.QUOTE_NONNUMERIC)
         reached_GMRES = False
+
         for row in file_reader:
-            print(row)
+
             if row[0] == 0:
                 reached_GMRES = True
                 data = np.array(row)
-                # ABOVE MAY NOT WORK if row is very long or array method doesn't work
-                if reached_GMRES == False:
-                    # Technically from https://stackoverflow.com/a/1024851
-                    info[row[0]] = row[1]
-                else:
-                    np.concatenate((data,row))
+
+            if reached_GMRES == False:
+                # Technically from
+                # https://stackoverflow.com/a/1024851
+                info[row[0]] = row[1]
+            # Next condition needed because we've already added row 0 to
+            # the data
+            elif row[0] == 0:
+                pass
+            else:
+                data = np.vstack((data,row))
 
     return (info,data)
             
+def csv_list_to_dataframe(csv_list,names_list):
+    """Writes content from a list of csv files to a Pandas DataFrame.
 
-    # go down the rows putting stuff into the dict until the first column is 0
+    Given a list of csv files (written by write_repeats_to_csv) extracts
+    all of the written data and places it in the rows of Pandas
+    DataFrame, and multiindexes the rows by the information
+    corresponding to each file given by the fields named in
+    names_list.
 
-    # Then great a numpy array of the correct width, call it data
+    Parameters:
+
+    csv_list - list of strings, giving the locations (including
+    filenames) of the csv files to read in.
+
+    names_list - list of strings, giving the fields from each of the csv
+    files that will be used to index the resulting DataFrame.
+
+    Output - Pandas DataFrame, the rows of which correspond to each of
+    the csv files read in. The rows are indexed by the fields given in
+    names_list.
+    """
+    import pdb; pdb.set_trace()    
+    labels = []
+
+    for csv_file in csv_list:
+        this_output = read_repeats_from_csv(csv_file)
+
+        labels.append([this_output[0][key] for key in names_list])
+        
+        # Need to extend the output array or the array about to be added
+        # if they're not the same size. Issues arise if the output array
+        # hasn't been created yet.
+        try:
+            current_size = output_array.shape[1]
+                   
+            new_size = this_output[1].shape[0]
+            if current_size < new_size:
+                output_array = np.hstack((output_array,
+                                          np.full((output_array.shape[0],
+                                                   new_size-current_size),
+                                                  np.nan)))
+            elif new_size < current_size:
+                # Concatenation is confusing, as this_output has the data in
+                # columns, but we're putting the data into rows.
+
+                this_output[1] = np.hstack(this_output[1],
+                                           np.full((current_size-new_size,
+                                                    this_output[1].shape[1]),
+                                                   np.nan))
+
+            output_array = np.vstack((output_array,this_output[1][:,1:].transpose()))
+
+        except UnboundLocalError:
+            output_array = this_output[1][:,1:].transpose()
+
+        
+    # Following adapted from
+    # https://pandas.pydata.org/pandas-docs/stable/advanced.html
+    index = pd.MultiIndex.from_tuples(labels,names=names_list)
+
+    return pd.DataFrame(output_array,index=index)
     
-    # Then switch to putting it into data
-
 def write_GMRES_its(GMRES_its,save_location,info):
 
     """Writes the number of GMRES iterations, and other information, to

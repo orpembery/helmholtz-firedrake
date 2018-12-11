@@ -312,3 +312,36 @@ def Iab(x,a,b) :
     a, b - floats, a < b.
     """
     return heaviside(x-a) - heaviside(x-b)
+
+def nd_indicator(x,val,loc_array):
+    """Define the indicator function on cubes in n-dimensions on a Mesh.
+
+    Parameters:
+
+    x - a Firedrake SpatialCoordinate
+
+    val - float or Firedrake Constant - the value to take on the cube. 
+
+    loc_tuple - a d x 2 numpy array of floats, where d is the geometric
+    dimension of the mesh. The jth row gives the limits of the cube in
+    dimension j.
+    """
+
+    d = x.ufl_domain().geometric_dimension()
+
+    for ii in range(d):
+        val = val * Iab(x[ii],loc_array[ii,0],loc_array[ii,1])
+
+    return val
+
+def flatiter_hack(constant_array,coords):
+    """What follows is a hack - the flatiter seems to miss the first
+         entry, and then try and do an extra one at the end (which
+         fails). So when it fails, we do the first one.
+    """
+    try:
+        constant_array[coords]
+    except IndexError:
+        coords = tuple(np.zeros(len(coords),dtype=int))
+
+    return coords

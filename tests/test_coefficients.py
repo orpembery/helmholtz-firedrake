@@ -137,3 +137,18 @@ def test_matrices_noise_level():
 
             assert abs(A_stoch._constant_array[coords]\
                        .evaluate(None,None,(),None)[1,0]) <= noise_level
+
+def test_lognormal_L1_exponential_runs():
+    """Test the lognormal RF whose log has L1 exponential covariance."""
+
+    mesh = fd.UnitSquareMesh(10,10)
+
+    mean = 0.0
+
+    sigma = 1.0
+
+    l = (0.1,0.15)
+
+    J = 10
+
+    hh_coeff.LognormalL1ExponentalCovarianceCoeff(mesh,mean,sigma,l,J)

@@ -1,7 +1,7 @@
 import helmholtz_firedrake.problems as hh
 import firedrake as fd
 import numpy as np
-from helmholtz_firedrake.coefficients import PiecewiseConstantCoeffGenerator
+import helmholtz_firedrake.coefficients as hh_coeff
 import helmholtz_firedrake.utils as hh_utils
 import copy
 
@@ -17,11 +17,11 @@ def test_coeff_being_updated():
     num_repeats = 10
     
     A_pre = fd.as_matrix(np.array([[1.0,0.0],[0.0,1.0]]))
-    A_stoch = PiecewiseConstantCoeffGenerator(mesh,num_pieces,
+    A_stoch = hh_coeff.PiecewiseConstantCoeffGenerator(mesh,num_pieces,
                                                    noise_level,A_pre,[2,2])
 
     n_pre = 1.0
-    n_stoch = PiecewiseConstantCoeffGenerator(mesh,num_pieces,
+    n_stoch = hh_coeff.PiecewiseConstantCoeffGenerator(mesh,num_pieces,
                                                    noise_level,n_pre,[1])
 
     A_copy = copy.deepcopy(A_stoch._constant_array[0,0].values())
@@ -49,11 +49,11 @@ def test_coeff_size():
     num_repeats = 100
     
     A_pre = fd.as_matrix(np.array([[1.0,0.0],[0.0,1.0]]))
-    A_stoch = PiecewiseConstantCoeffGenerator(mesh,num_pieces,
+    A_stoch = hh_coeff.PiecewiseConstantCoeffGenerator(mesh,num_pieces,
                                                    noise_level,A_pre,[2,2])
 
     n_pre = 1.0
-    n_stoch = PiecewiseConstantCoeffGenerator(mesh,num_pieces,
+    n_stoch = hh_coeff.PiecewiseConstantCoeffGenerator(mesh,num_pieces,
                                                    noise_level,n_pre,[1])
     for ii in range(num_repeats):
         A_stoch.sample()
@@ -79,7 +79,7 @@ def test_matrices_spd():
     num_repeats = 100
     
     A_pre = fd.as_matrix(np.array([[1.0,0.0],[0.0,1.0]]))
-    A_stoch = PiecewiseConstantCoeffGenerator(mesh,num_pieces,
+    A_stoch = hh_coeff.PiecewiseConstantCoeffGenerator(mesh,num_pieces,
                                                    noise_level,A_pre,[2,2])
 
     for ii in range(num_repeats):
@@ -116,7 +116,7 @@ def test_matrices_noise_level():
     num_repeats = 100
     
     A_pre = fd.as_matrix(np.array([[1.0,0.0],[0.0,1.0]]))
-    A_stoch = PiecewiseConstantCoeffGenerator(mesh,num_pieces,
+    A_stoch = hh_coeff.PiecewiseConstantCoeffGenerator(mesh,num_pieces,
                                                    noise_level,A_pre,[2,2])
 
     for ii in range(num_repeats):

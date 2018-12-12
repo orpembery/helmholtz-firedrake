@@ -1,5 +1,6 @@
 import firedrake as fd
 import numpy as np
+import helmholtz_firedrake.utils as utils
 
 class PiecewiseConstantCoeffGenerator(object):
     """Does the work of A_stoch and n_stoch in
@@ -84,26 +85,6 @@ class PiecewiseConstantCoeffGenerator(object):
         """
         return values_list[x_coord + y_coord * coord_length]
 
-    def _heaviside(self,x):
-        """Defines the heaviside step function in UFL.
-
-        Parameters:
-
-        x - single coordinate of a UFL SpatialCoordinate.
-        """
-        return 0.5 * (fd.sign(fd.real(x)) + 1.0)
-
-    def _Iab(self,x,a,b) :
-        """Indicator function on [a,b] in UFL.
-
-        Parameters:
-
-        x - single coordinate of a UFL SpatialCoordinate.
-        
-        a, b - floats in [0,1].
-        """
-        return self._heaviside(x-a) - self._heaviside(x-b)
-
     def _coeff_initialise(self,mesh,coeff_pre):
         """Initialises self.coeff equal to coeff_pre, but sets up
         Firedrake Constant structure to allow for sampling.
@@ -121,40 +102,56 @@ class PiecewiseConstantCoeffGenerator(object):
             warnings.warn("coeff_pre is not the identity. There is no\
             guarantee that the randomly-generated matrices are\
             positive-definite, or have the correct amount of noise.")
+
+        d = mesh.geometric_dimension()
+            
+        # Bit of a hack, set up num_pieces
+        num_pieces_list = []
+        [num_pieces_list.append(self._num_pieces) for ii in range(d)]
+            
+        # Set up all the Firedrake Constants:
+        self._constant_array = np.empty(num_pieces_list,dtype=object)
+        ca_flat = self._constant_array.flat
         
-        self._coeff_values = []
-        
-        for ii in range(self._num_pieces**2):
+        for ii in ca_flat:
+            coords = utils.flatiter_hack(self._constant_array,ca_flat.coords)
+            
             if self._coeff_dims == [2,2]:
-                self._coeff_values.append(np.array([[0.0,0.0],[0.0,0.0]]))
+                self._constant_array[coords] = fd.Constant(
+                    np.array([[0.0,0.0],[0.0,0.0]]),domain=mesh)
             elif self._coeff_dims == [1]:
-                self._coeff_values.append(np.array(0.0))
-            else:
-                raise NotImplementedError(
-                          "Have only implemented real- and\
-                          matrix-valued coefficients")
+                self._constant_array[coords] = fd.Constant(0.0,domain=mesh)
+
+        # You can't reinitialise a flatiter (I think)
+        del(ca_flat)
                 
-        self._coeff_values = [fd.Constant(coeff_dummy,domain=mesh)
-                              for coeff_dummy in self._coeff_values]
-        
         # Form coeff by looping over all the subdomains
         x = fd.SpatialCoordinate(mesh)
 
         self.coeff = coeff_pre
+
+        ca_flat = self._constant_array.flat
         
-        for xii in range(self._num_pieces):
-            for yii in range(self._num_pieces):
-                self.coeff +=\
-                self._list_extract(self._coeff_values,xii,yii,
-                                   self._num_pieces)\
-                * self._Iab(x[0],xii/self._num_pieces,(xii+1)/
-                            self._num_pieces)\
-                * self._Iab(x[1],yii/self._num_pieces,(yii+1)/self._num_pieces)
+        for ii in ca_flat:
+
+            coords = utils.flatiter_hack(self._constant_array,ca_flat.coords)
+
+            coords_t = np.array(coords,dtype=float).transpose()
+            
+            loc_array = np.vstack((coords_t,coords_t + 1.0))\
+                        /float(self._num_pieces)
+            
+            self.coeff += utils.nd_indicator(
+                x,self._constant_array[coords],loc_array)
 
     def sample(self):
         """Samples the coefficient coeff."""
-        [coeff_dummy.assign(self._generate_matrix_coeff())
-         for coeff_dummy in self._coeff_values]
+        
+        ca_flat = self._constant_array.flat
+
+        for ii in ca_flat:
+            coords = utils.flatiter_hack(self._constant_array,ca_flat.coords)
+            self._constant_array[coords].assign(self._generate_matrix_coeff())
 
     def _generate_matrix_coeff(self):
         """Generates a realisation of the random coefficient.

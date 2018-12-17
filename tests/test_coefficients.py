@@ -1,7 +1,7 @@
 import helmholtz_firedrake.problems as hh
 import firedrake as fd
 import numpy as np
-from helmholtz_firedrake.coefficients import PiecewiseConstantCoeffGenerator
+from helmholtz_firedrake.coefficients import PiecewiseConstantCoeffGenerator, UniformKLLikeCoeff, SamplingError
 import helmholtz_firedrake.utils as hh_utils
 import copy
 
@@ -137,3 +137,63 @@ def test_matrices_noise_level():
 
             assert abs(A_stoch._constant_array[coords]\
                        .evaluate(None,None,(),None)[1,0]) <= noise_level
+
+def test_kl_like_coeff():
+    """Tests the KL-like coefficient."""
+
+    mesh = fd.UnitSquareMesh(10,10)
+
+    J = 10
+
+    delta = 2.0
+
+    lambda_mult = 0.1
+
+    n_0 = 1.0
+
+    given_points = np.random.rand(10,J) - 0.5
+
+    kl_like = UniformKLLikeCoeff(mesh,J,delta,lambda_mult,n_0,given_points)
+
+    for jj in range(J):
+
+        kl_like.sample()
+
+        kl_like.coeff
+
+    try:
+        kl_like.sample()
+    except SamplingError:
+        pass
+
+    kl_like.reinitialise()
+
+def test_kl_like_coeff_changing_externally():
+    """Tests the KL-like coefficient."""
+
+    mesh = fd.UnitSquareMesh(10,10)
+
+    J = 10
+
+    delta = 2.0
+
+    lambda_mult = 0.1
+
+    n_0 = 1.0
+
+    given_points = np.random.rand(3,J) - 0.5
+
+    kl_like = UniformKLLikeCoeff(mesh,J,delta,lambda_mult,n_0,given_points)
+
+
+
+    kl_like.sample()
+
+    kl_like.stochastic_points = kl_like.stochastic_points[-1:,:]
+    
+    try:
+        kl_like.sample()
+    except SamplingError:
+        pass
+
+    assert kl_like.stochastic_points.shape[0] == 0

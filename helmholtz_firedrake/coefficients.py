@@ -1,6 +1,7 @@
 import firedrake as fd
 import numpy as np
 import helmholtz_firedrake.utils as utils
+from copy import deepcopy
 
 class PiecewiseConstantCoeffGenerator(object):
     """Does the work of A_stoch and n_stoch in
@@ -230,3 +231,133 @@ class GammaConstantCoeffGenerator(object):
         """Samples the exponentially-distributed coefficient coeff."""
 
         self._coeff_rand.assign(np.random.gamma(self._shape,self._scale))
+
+class UniformKLLikeCoeff(object):
+    """A coefficient given by a KL-like expansion, with uniform R.V.s.
+
+    The coefficient can be used in 2- or 3-D.
+
+    Initially the coefficient is set up so that the y_j (see init
+    documentation) are all NaN. To set the values of y_j iteratively
+    (iterating along a provided list of values - see init documentation)
+    use the sample() method.
+
+    Attributes:
+
+    coeff - a UFL-implemented coeff, suitable for using in a
+    helmholtz-firedrake StochasticHelmholtzProblem.
+
+    stochastic_points - a numpy array of width J (see init
+    documentation) containing the values of y_j (for many realisations
+    of the vector y). Can be changed between calls to sample.
+
+    Methods:
+
+    sample - as in the requirements for StochasticHelmholtzProblem
+
+    reinitialise - Restores the list of 'stochastic points' to the
+    original list, and initialises the coefficients in series expansion
+    to NaN.
+
+    """
+
+    def __init__(self,mesh,J,delta,lambda_mult,n_0,given_points):
+        """Initialises the coefficient.
+
+        The coefficient is of the form
+
+        \[ n(y,x) = n_0 + \sum_{j=1}^J \sqrt{\lambda_j} y_j \psi_j,\]
+
+        where the $\psi_j$ are given by 
+        \[ \psi_j(x) = \cos(j\pi x[0]) \cos((j+1)\pi x[1])...
+                           \cos((j+2)\pi x[2])\]
+        (where the third term is neglected in 2-D),
+        the $\sqrt{\lambda_j}$ are chosen so that 
+        \[\sqrt{\lambda_j} = lambda_mult j^{-1-\delta}\]
+        and the $y_j$ are in $[-1/2,1/2]$.
+
+        Parameters:
+
+        mesh - Firedrake Mesh - on which the coefficient will be
+        defined.
+
+        J - positive int - the number of terms in the expansion.
+
+        delta - positive real - controls the convergence rate of the
+        series (see above).
+
+        n_0 - float or UFL expression on mesh - the mean of the
+        expansion.
+
+        stochastic_points - numpy ndarray of floats, of width J and some
+        length. Each row gives the points y in 'stochastic space' at
+        which the coefficient will be evaluated.
+
+        """
+        self._J = J
+        
+        self._stochastic_points_copy = deepcopy(given_points)
+
+        self.reinitialise()
+
+        self._mesh = mesh
+        
+        self._x = fd.SpatialCoordinate(self._mesh)
+
+        # A bit of fiddling through this, because we want to start
+        # indexing at 1
+        
+        self._psij = np.array([fd.cos(float(jj+1) * np.pi * self._x[0])
+                               * fd.cos(float(jj+2) * np.pi * self._x[1])
+                               for jj in range(self._J)])
+
+        if mesh.geometric_dimension() == 3:
+          for jj in range(self._J):
+              self._psij[jj] = self._psij[jj]\
+                               * fd.cos(float(jj+3) * np.pi * self._x[2])
+
+        self._sqrt_lambda = np.array([lambda_mult * float(jj+1)**(-1.0-delta)
+                                      for jj in range(self._J)])
+
+        self.coeff = n_0
+
+        for jj in range(self._J):
+            self.coeff += self._sqrt_lambda[jj]\
+                     * self._stochastic_points_constants[jj] * self._psij[jj]
+
+    def sample(self):
+        """Samples the coefficient, selects the next 'stochastic point'.
+
+        If all the stochastic points have been sampled, returns a
+        SamplingError.
+
+        """
+        if self.stochastic_points.shape[0] == 0:
+            raise SamplingError
+
+        else:
+            for jj in range(self._J):
+                self._stochastic_points_constants[jj].assign(
+                    self.stochastic_points[0,jj])
+
+            self.stochastic_points = self.stochastic_points[1:,:]
+
+    def reinitialise(self):
+        """Restores all stochastic points, and resets the Constants."""
+
+        self.stochastic_points = deepcopy(self._stochastic_points_copy)
+
+        # Update Constants if they already exist, create them if not.
+        try:
+            for jj in range(self._J):
+                self._stochastic_points_constants[jj].assign(np.nan)
+        except AttributeError:
+            self._stochastic_points_constants = np.array([fd.Constant(np.nan)
+                                                          for ii in range(self._J)])
+                   
+class SamplingError(Exception):
+    """Error raised when all points have been sampled."""
+
+    def __init__(self):
+        print("All stochastic points have been sampled. Reinitalise the coefficient.")
+        

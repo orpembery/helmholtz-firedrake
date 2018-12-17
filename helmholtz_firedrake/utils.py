@@ -63,7 +63,8 @@ def write_repeats_to_csv(data,save_location,name_string,info):
     name_string - string containing the beginning of the filename for
     the csv. The csv file will then have the filename given by
     name_string + date_time + '.csv', where date_time is a string
-    containing the date and time.
+    containing the date and time. If this string contains any spaces or
+    slashes they will be removed.
 
     info - a dict containing all of the other information to be written
     to the file. None of the keys of the dict should be the integer 0.
@@ -79,6 +80,11 @@ def write_repeats_to_csv(data,save_location,name_string,info):
 
     # Check save_location is actually a directory path
     assert save_location[-1] == "/"
+
+    # Remove anything improper from the name string. A bit of a hack.
+    name_string = name_string.replace(' ','')
+    name_string = name_string.replace('/','')
+    print(name_string,flush=True)
     
     # Get git hash
     git_hash = subprocess.run("git rev-parse HEAD", shell=True,

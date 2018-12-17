@@ -44,9 +44,7 @@ def num_cells_to_h(num_cells_tuple,d):
     assert len(num_cells_tuple) == d
     
     # This is a bit of hack, may be a cleaner way to do it
-    return np.sqrt(np.array(
-        [1.0/float(num_cells**2) for num_cells in num_cells_tuple]
-    ).sum())
+    return np.sqrt(float(d)/float(num_cells**2))
 
 def write_repeats_to_csv(data,save_location,name_string,info):
     """Writes the results of a number of experiments, to a .csv file.

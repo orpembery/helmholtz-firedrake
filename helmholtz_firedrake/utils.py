@@ -242,30 +242,23 @@ def write_GMRES_its(GMRES_its,save_location,info):
 
     save_location - see write_repeats_to_csv.
 
-    GMRES_its - 1-dimensional numpy array of positive ints.
+    GMRES_its - list of positive ints of length num_repeats (output of
+    nearby_preconditioning_test).
 
     info - see write_repeats_to_csv
 
     The output csv file will have the filename
-    info-as-strings-date_time.csv, where info_as_strings will consist of
-    all of the keys in the dictionary info, followed by their values
-    (for example, if info = {'k' : 10, 'h' : 0.1} then info_as_strings
-    will be k-10--h-0.1--). date_time is the date and time. The rows of
-    the file will consist of the hash of the current git commit, then
-    the date and time, then all of the entries of info (where the value
-    first column will be the key, and the value in the second column
-    will be the value in the dict), followed by the GMRES iterations
-    (repeat number in the first column, number of GMRES iterations in
-    the second).
+    'nearby-preconditioning-test-output-date_time.csv, where date_time
+    is the date and time. The rows of the file will consist of the hash
+    of the current git commit, then the date and time, then all of the
+    entries of info (where the value first column will be the key, and
+    the value in the second column will be the value in the dict),
+    followed by the GMRES iterations (repeat number in the first column,
+    number of GMRES iterations in the second).
     """
 
-    info_as_strings = ''
-
-    for key in sorted(info.keys()):
-        info_as_strings = info_as_strings + key + '-' + str(info[key]) + '--'
-    
     write_repeats_to_csv(GMRES_its,save_location,
-                         info_as_strings,info)
+                         'nearby-preconditioning-test-output-',info)
 
 def norm_weighted(u,k):
     """Computes the weighted H^1 norm of u.

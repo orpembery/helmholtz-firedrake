@@ -254,7 +254,9 @@ class UniformKLLikeCoeff(object):
 
     Methods:
 
-    sample - as in the requirements for StochasticHelmholtzProblem
+    sample - as in the requirements for StochasticHelmholtzProblem, but
+    has further, important functionality. See documentation for the
+    method.
 
     reinitialise - Restores the list of 'stochastic points' to the
     original list, and initialises the coefficients in series expansion
@@ -328,6 +330,9 @@ class UniformKLLikeCoeff(object):
 
     def sample(self):
         """Samples the coefficient, selects the next 'stochastic point'.
+
+        Crucial to note - when a new point is sampled, the previous
+        point is deleted from self.stochastic_points.
 
         If all the stochastic points have been sampled, returns a
         SamplingError.

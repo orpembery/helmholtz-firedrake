@@ -328,11 +328,13 @@ class UniformKLLikeCoeff(object):
             self.coeff += self._sqrt_lambda[jj]\
                      * self._stochastic_points_constants[jj] * self._psij[jj]
 
-    def sample(self):
+    def sample(self,keep_current_point=False):
         """Samples the coefficient, selects the next 'stochastic point'.
 
-        Crucial to note - when a new point is sampled, the previous
-        point is deleted from self.stochastic_points.
+        Crucial to note - when keep_current_point is False, a new point
+        is sampled and the previous point is deleted from
+        self.stochastic_points. When keep_current_point is True, the
+        current point is not deleted.
 
         If all the stochastic points have been sampled, returns a
         SamplingError.
@@ -346,6 +348,7 @@ class UniformKLLikeCoeff(object):
                 self._stochastic_points_constants[jj].assign(
                     self.stochastic_points[0,jj])
 
+        if keep_current_point is False:
             self.stochastic_points = self.stochastic_points[1:,:]
 
     def reinitialise(self):

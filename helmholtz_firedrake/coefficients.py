@@ -235,7 +235,8 @@ class GammaConstantCoeffGenerator(object):
 class UniformKLLikeCoeff(object):
     """A coefficient given by a KL-like expansion, with uniform R.V.s.
 
-    The coefficient can be used in 2- or 3-D.
+    The coefficient can be used in 2- or 3-D in a
+    StochasticHelmholtzProblem.
 
     Initially the coefficient is set up so that the y_j (see init
     documentation) are all NaN. To set the values of y_j iteratively

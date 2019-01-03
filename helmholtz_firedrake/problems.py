@@ -378,12 +378,6 @@ class StochasticHelmholtzProblem(HelmholtzProblem):
             [A_pre,n_pre,f,g], where these satisfy the requirements
             in HelmholtzProblem.
         """
-        if A_stoch is not None:
-            self._A_sample = A_stoch.sample
-
-        if n_stoch is not None:
-            self._n_sample = n_stoch.sample
-
         if A_stoch is None:
             super().__init__(k, V, n=n_stoch.coeff, **kwargs)
         elif n_stoch is None:
@@ -391,9 +385,15 @@ class StochasticHelmholtzProblem(HelmholtzProblem):
         else:
             super().__init__(k, V, A=A_stoch.coeff, n=n_stoch.coeff,**kwargs)
 
-        self._A_stoch = A_stoch
+        self.A_stoch = A_stoch
 
-        self._n_stoch = n_stoch
+        self.n_stoch = n_stoch
+
+        if A_stoch is not None:
+            self._A_sample = self.A_stoch.sample
+
+        if n_stoch is not None:
+            self._n_sample = self.n_stoch.sample
             
     def sample(self):
         """Samples the coefficients A and n.

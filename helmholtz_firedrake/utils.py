@@ -22,7 +22,7 @@ def h_to_num_cells(h,d):
     positive int - the number of cells to use in both the x- and
     y-directions.
     """
-    return np.ceil(np.sqrt(float(d))/h)
+    return int(np.ceil(np.sqrt(float(d))/h))
 
 def num_cells_to_h(num_cells_tuple,d):
     """Converts the number of points in a Firedrake UnitSquareMesh or
@@ -44,7 +44,7 @@ def num_cells_to_h(num_cells_tuple,d):
     assert len(num_cells_tuple) == d
     
     # This is a bit of hack, may be a cleaner way to do it
-    return np.sqrt(float(d)/float(num_cells**2))
+    return np.sqrt(np.array([1.0/float(ii)**2.0 for ii in num_cells_tuple]).sum())
 
 def write_repeats_to_csv(data,save_location,name_string,info):
     """Writes the results of a number of experiments, to a .csv file.

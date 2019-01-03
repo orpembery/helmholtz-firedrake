@@ -252,6 +252,9 @@ class UniformKLLikeCoeff(object):
     documentation) containing the values of y_j (for many realisations
     of the vector y). Can be changed between calls to sample.
 
+    current_point - numpy array of length J (a vector, really)
+    containing the 'stochastic coordinates' of the current point.
+
     Methods:
 
     sample - as in the requirements for StochasticHelmholtzProblem, but
@@ -328,13 +331,14 @@ class UniformKLLikeCoeff(object):
             self.coeff += self._sqrt_lambda[jj]\
                      * self._stochastic_points_constants[jj] * self._psij[jj]
 
-    def sample(self,keep_current_point=False):
+    def sample(self):
         """Samples the coefficient, selects the next 'stochastic point'.
 
-        Crucial to note - when keep_current_point is False, a new point
-        is sampled and the previous point is deleted from
-        self.stochastic_points. When keep_current_point is True, the
-        current point is not deleted.
+        Behaviour is as follows: when sample() is called, the Firedrake
+        constants underlying the coefficient are updated with the values
+        contained in the first row of self.stochastic_points. These
+        values are the copied into self.current_point. Finally, the
+        first row is deleted from self.stochastic_points.
 
         If all the stochastic points have been sampled, returns a
         SamplingError.
@@ -348,8 +352,9 @@ class UniformKLLikeCoeff(object):
                 self._stochastic_points_constants[jj].assign(
                     self.stochastic_points[0,jj])
 
-        if keep_current_point is False:
-            self.stochastic_points = self.stochastic_points[1:,:]
+        self.current_point = self.stochastic_points[0,:]
+
+        self.stochastic_points = self.stochastic_points[1:,:]
 
     def reinitialise(self):
         """Restores all stochastic points, and resets the Constants."""
@@ -368,5 +373,5 @@ class SamplingError(Exception):
     """Error raised when all points have been sampled."""
 
     def __init__(self):
-        print("All stochastic points have been sampled. Reinitalise the coefficient.")
+        print("All stochastic points have been sampled. Reinitialise the coefficient.")
         

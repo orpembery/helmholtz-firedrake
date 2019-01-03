@@ -238,10 +238,10 @@ class UniformKLLikeCoeff(object):
     The coefficient can be used in 2- or 3-D in a
     StochasticHelmholtzProblem.
 
-    Initially the coefficient is set up so that the y_j (see init
-    documentation) are all NaN. To set the values of y_j iteratively
-    (iterating along a provided list of values - see init documentation)
-    use the sample() method.
+    Initially the coefficient is set up so that the y_j are the first
+    row of given_points (see __init__ documentation). To set the values
+    of y_j iteratively (iterating along a provided list of values - see
+    init documentation) use the sample() method.
 
     Attributes:
 
@@ -251,9 +251,6 @@ class UniformKLLikeCoeff(object):
     stochastic_points - a numpy array of width J (see init
     documentation) containing the values of y_j (for many realisations
     of the vector y). Can be changed between calls to sample.
-
-    current_point - numpy array of length J (a vector, really)
-    containing the 'stochastic coordinates' of the current point.
 
     Methods:
 
@@ -302,7 +299,7 @@ class UniformKLLikeCoeff(object):
         """
         self._J = J
         
-        self._stochastic_points_copy = deepcopy(given_points)
+        self._stochastic_points_copy = np.array(deepcopy(given_points),ndmin=2)
 
         self.reinitialise()
 
@@ -311,7 +308,7 @@ class UniformKLLikeCoeff(object):
         self._x = fd.SpatialCoordinate(self._mesh)
 
         # A bit of fiddling through this, because we want to start
-        # indexing at 1
+        # indexing at 1 in the sum.
         
         self._psij = np.array([fd.cos(float(jj+1) * np.pi * self._x[0])
                                * fd.cos(float(jj+2) * np.pi * self._x[1])
@@ -334,27 +331,22 @@ class UniformKLLikeCoeff(object):
     def sample(self):
         """Samples the coefficient, selects the next 'stochastic point'.
 
-        Behaviour is as follows: when sample() is called, the Firedrake
+        Behaviour is as follows: when sample() is called, the first row
+        is deleted from self.stochastic_points. Then the Firedrake
         constants underlying the coefficient are updated with the values
-        contained in the first row of self.stochastic_points. These
-        values are the copied into self.current_point. Finally, the
-        first row is deleted from self.stochastic_points.
+        contained in the (new) first row of self.stochastic_points.
 
         If all the stochastic points have been sampled, returns a
         SamplingError.
 
         """
+        self.stochastic_points = self.stochastic_points[1:,:]
+        
         if self.stochastic_points.shape[0] == 0:
             raise SamplingError
 
         else:
-            for jj in range(self._J):
-                self._stochastic_points_constants[jj].assign(
-                    self.stochastic_points[0,jj])
-
-        self.current_point = self.stochastic_points[0,:]
-
-        self.stochastic_points = self.stochastic_points[1:,:]
+            self.first_row_assign()
 
     def reinitialise(self):
         """Restores all stochastic points, and resets the Constants."""
@@ -363,11 +355,21 @@ class UniformKLLikeCoeff(object):
 
         # Update Constants if they already exist, create them if not.
         try:
-            for jj in range(self._J):
-                self._stochastic_points_constants[jj].assign(np.nan)
+            self.first_row_assign()
         except AttributeError:
-            self._stochastic_points_constants = np.array([fd.Constant(np.nan)
-                                                          for ii in range(self._J)])
+            self._stochastic_points_constants = np.array(
+                [fd.Constant(self.stochastic_points[0,jj])
+                 for jj in range(self._J)])
+
+    def first_row_assign(self):
+        """Assigns the first row of stochastic_points to Constants."""
+        for jj in range(self._J):
+            self._stochastic_points_constants[jj].assign(
+                self.stochastic_points[0,jj])
+
+    def current_point(self):
+        """Grabs the current point."""
+        return self.stochastic_points[0,:]
                    
 class SamplingError(Exception):
     """Error raised when all points have been sampled."""

@@ -286,6 +286,28 @@ class HelmholtzProblem(object):
         self.set_g(1j*self._k*fd.exp(1j*self._k*fd.dot(x,d))\
                    *(fd.dot(d,nu)-1.0))
 
+    def f_g_incoming_plane_wave(self,
+                                d=fd.as_vector(
+                                    [1.0/np.sqrt(2.0),1.0/np.sqrt(2.0)])):
+        """Sets f and g to correspond to an incoming plane wave.
+
+        That is, on the 'incoming' edges, g is the trace of a plane
+        wave, but on the 'outgoing' edges, g = 0.0.
+        """
+
+        self.set_f(0.0)
+
+        x = fd.SpatialCoordinate(self.V.mesh())
+
+        nu = fd.FacetNormal(self.V.mesh())
+        
+        self.set_g(
+            fd.conditional(fd.le(fd.dot(d,nu),0),
+                           1j*self._k*fd.exp(1j*self._k*fd.dot(x,d))\
+                           *(fd.dot(d,nu)-1.0),
+                           0.0))
+
+        
     def force_lu(self):
         """Forces the use of an direct LU solver for each solve."""
 

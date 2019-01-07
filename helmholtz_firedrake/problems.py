@@ -1,6 +1,7 @@
 import firedrake as fd
 import numpy as np
 from matplotlib import pyplot as plt
+from pyop2.profiling import timed_stage
 
 class HelmholtzProblem(object):
     """Defines a finite-element approximation of a Helmholtz problem.
@@ -116,8 +117,10 @@ class HelmholtzProblem(object):
 
         if not(self._initialised):
             self._initialise_problem()
+
+        with timed_stage("HelmholtzProblem solve"):
             
-        self._solver.solve()
+            self._solver.solve()
 
         assert isinstance(self._solver.snes.ksp.getIterationNumber(),int)
        

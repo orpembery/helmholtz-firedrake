@@ -283,6 +283,26 @@ class HelmholtzProblem(object):
         self.set_g(1j*self._k*fd.exp(1j*self._k*fd.dot(x,d))\
                    *(fd.dot(d,nu)-1.0))
 
+    def f_g_circular_source(self,x_centre):
+        """Sets f to be a source of circular waves.
+
+        Based on that in Douglas Shanks' thesis, Eqn  (5.24).
+
+        Parameters:
+
+        x_centre - tuple of correct length - the centre of the wave.
+
+        Currently only implemented in 2-D.
+        """
+
+        self.set_g(0.0)
+
+        x = fd.SpatialCoordinate(self.V.mesh())
+
+        self.set_f(1200.0 * fd.exp(
+            -(self._k/np.pi)**2*\
+            ((x[0]-x_centre[0])**2 + (x[1]-x_centre[1])**2)))
+
     def force_lu(self):
         """Forces the use of an direct LU solver for each solve."""
 

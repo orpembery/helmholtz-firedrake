@@ -248,9 +248,10 @@ class UniformKLLikeCoeff(object):
     coeff - a UFL-implemented coeff, suitable for using in a
     helmholtz-firedrake StochasticHelmholtzProblem.
 
-    stochastic_points - a numpy array of width J (see init
-    documentation) containing the values of y_j (for many realisations
-    of the vector y). Can be changed between calls to sample.
+    stochastic_points - an object which has an attribute called points, which
+    is a numpy array of width J (see init documentation) containing the values
+    of y_j (for many realisations of the vector y). The attribute
+    stochastic_points.points can be changed between calls to sample.
 
     Methods:
 
@@ -292,15 +293,19 @@ class UniformKLLikeCoeff(object):
         n_0 - float or UFL expression on mesh - the mean of the
         expansion.
 
-        stochastic_points - numpy ndarray of floats, of width J and some
-        length. Each row gives the points y in 'stochastic space' at
-        which the coefficient will be evaluated.
+        given_points - an object which has an attribute called points, which is
+        a numpy ndarray of floats, of width J and some length. Each row gives
+        the points y in 'stochastic space' at which the coefficient will be
+        evaluated.
 
         """
         self._J = J
         
-        self._stochastic_points_copy = np.array(deepcopy(given_points),ndmin=2)
+        self._stochastic_points_copy = np.array(deepcopy(given_points.points),ndmin=2)
 
+        self.stochastic_points = given_points
+        
+        # self._stochastic_points_constants are defined in here
         self.reinitialise()
 
         self._mesh = mesh
@@ -332,17 +337,17 @@ class UniformKLLikeCoeff(object):
         """Samples the coefficient, selects the next 'stochastic point'.
 
         Behaviour is as follows: when sample() is called, the first row
-        is deleted from self.stochastic_points. Then the Firedrake
+        is deleted from self.stochastic_points.points. Then the Firedrake
         constants underlying the coefficient are updated with the values
-        contained in the (new) first row of self.stochastic_points.
+        contained in the (new) first row of self.stochastic_points.points.
 
         If all the stochastic points have been sampled, returns a
         SamplingError.
 
         """
-        self.stochastic_points = self.stochastic_points[1:,:]
+        self.stochastic_points.points = self.stochastic_points.points[1:,:]
         
-        if self.stochastic_points.shape[0] == 0:
+        if self.stochastic_points.points.shape[0] == 0:
             raise SamplingError
 
         else:
@@ -351,25 +356,25 @@ class UniformKLLikeCoeff(object):
     def reinitialise(self):
         """Restores all stochastic points, and resets the Constants."""
 
-        self.stochastic_points = deepcopy(self._stochastic_points_copy)
+        self.stochastic_points.points = deepcopy(self._stochastic_points_copy)
 
         # Update Constants if they already exist, create them if not.
         try:
             self.first_row_assign()
         except AttributeError:
             self._stochastic_points_constants = np.array(
-                [fd.Constant(self.stochastic_points[0,jj])
+                [fd.Constant(self.stochastic_points.points[0,jj])
                  for jj in range(self._J)])
 
     def first_row_assign(self):
         """Assigns the first row of stochastic_points to Constants."""
         for jj in range(self._J):
             self._stochastic_points_constants[jj].assign(
-                self.stochastic_points[0,jj])
+                self.stochastic_points.points[0,jj])
 
     def current_point(self):
         """Grabs the current point."""
-        return self.stochastic_points[0,:]
+        return self.stochastic_points.points[0,:]
                    
 class SamplingError(Exception):
     """Error raised when all points have been sampled."""

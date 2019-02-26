@@ -283,8 +283,10 @@ class HelmholtzProblem(object):
         self.set_g(1j*self._k*fd.exp(1j*self._k*fd.dot(x,d))\
                    *(fd.dot(d,nu)-1.0))
 
-    def force_lu(self):
-        """Forces the use of an direct LU solver for each solve."""
+    def use_lu(self):
+        """Forces the use of an direct LU solver for each solve.
+
+        The solver used will be the standard PETSc LU solver."""
 
         self._solver_params_override = True
 
@@ -292,12 +294,22 @@ class HelmholtzProblem(object):
                                  "pc_type": "lu"
                                  }
 
-    def unforce_lu(self):
-        """Replaces LU solver with default."""
+    def use_gmres(self):
+        """Returns the solver to the default, (preconditioned) GMRES."""
 
         self._solver_params_override = False
 
         self._set_pre()
+
+    def use_mumps(self):
+        """Forces the use of the direct solver MUMPS."""
+
+        self._solver_params_override = True
+
+        self._solver_parameters = {"ksp_type" : "preonly",
+                                   "pc_type": "lu",
+                                   "mat_type": "aij",
+                                   "pc_factor_mat_solver_type": "mumps"}
 
 
     def set_rhs_nbpc_paper(self,A_right,f):

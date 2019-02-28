@@ -248,10 +248,11 @@ class UniformKLLikeCoeff(object):
     coeff - a UFL-implemented coeff, suitable for using in a
     helmholtz-firedrake StochasticHelmholtzProblem.
 
-    stochastic_points - an object which has an attribute called points, which
-    is a numpy array of width J (see init documentation) containing the values
-    of y_j (for many realisations of the vector y). The attribute
-    stochastic_points.points can be changed between calls to sample.
+    stochastic_points - an object which has an attribute called points,
+    which is a numpy array of width J (see init documentation)
+    containing the values of y_j (for many realisations of the vector
+    y). The attribute stochastic_points.points can be changed between
+    calls to sample.
 
     Methods:
 
@@ -261,7 +262,7 @@ class UniformKLLikeCoeff(object):
 
     reinitialise - Restores the list of 'stochastic points' to the
     original list, and initialises the coefficients in series expansion
-    to NaN.
+    to NaN - not sure this stuff about NaNs is true actually.
 
     """
 
@@ -293,11 +294,12 @@ class UniformKLLikeCoeff(object):
         n_0 - float or UFL expression on mesh - the mean of the
         expansion.
 
-        given_points - an object which has an attribute called points, which is
-        a numpy ndarray of floats, of width J and some length. Each row gives
-        the points y in 'stochastic space' at which the coefficient will be
-        evaluated.
-
+        given_points - an object which has an attribute called points,
+        which is a numpy ndarray of floats, of width J and some
+        length. Each row gives the points y in 'stochastic space' at
+        which the coefficient will be evaluated.
+        
+        More methods are included - see the code.
         """
         self._J = J
         
@@ -337,9 +339,10 @@ class UniformKLLikeCoeff(object):
         """Samples the coefficient, selects the next 'stochastic point'.
 
         Behaviour is as follows: when sample() is called, the first row
-        is deleted from self.stochastic_points.points. Then the Firedrake
-        constants underlying the coefficient are updated with the values
-        contained in the (new) first row of self.stochastic_points.points.
+        is deleted from self.stochastic_points.points. Then the
+        Firedrake constants underlying the coefficient are updated with
+        the values contained in the (new) first row of
+        self.stochastic_points.points.
 
         If all the stochastic points have been sampled, returns a
         SamplingError.

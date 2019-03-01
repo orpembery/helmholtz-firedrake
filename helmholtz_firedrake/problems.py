@@ -375,11 +375,6 @@ class StochasticHelmholtzProblem(HelmholtzProblem):
 
         self.n_stoch = n_stoch
 
-        if A_stoch is not None:
-            self._A_sample = self.A_stoch.sample
-
-        if n_stoch is not None:
-            self._n_sample = self.n_stoch.sample
             
     def sample(self):
         """Samples the coefficients A and n.
@@ -388,11 +383,11 @@ class StochasticHelmholtzProblem(HelmholtzProblem):
         """
 
         try:
-            self._A_sample()
+            self.A_stoch.sample()
         except AttributeError:
             None
             
         try:
-            self._n_sample()
+            self.n_stoch.sample()
         except AttributeError:
             None

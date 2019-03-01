@@ -403,13 +403,13 @@ def test_force_solver_params():
 
     prob = hh.HelmholtzProblem(k,V)
 
-    prob.force_lu()
+    prob.use_lu()
 
     assert prob._solver_parameters["ksp_type"] == "preonly"
 
     assert prob._solver_parameters["pc_type"] == "lu"
 
-def test_force_solver_params():
+def test_unforce_solver_params():
     """Test that 'unforcing' an LU solver works."""
 
     mesh = fd.UnitSquareMesh(100,100)
@@ -420,9 +420,9 @@ def test_force_solver_params():
 
     prob = hh.HelmholtzProblem(k,V)
 
-    prob.force_lu()
+    prob.use_lu()
 
-    prob.unforce_lu()
+    prob.use_gmres()
 
     assert prob._solver_parameters["ksp_type"] != "preonly"
 

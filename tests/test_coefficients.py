@@ -151,12 +151,14 @@ def test_kl_like_coeff():
 
     n_0 = 1.0
 
-    given_points = np.random.rand(10,J) - 0.5
+    given_points = PointsHolder(np.random.rand(10,J) - 0.5)
 
     kl_like = UniformKLLikeCoeff(mesh,J,delta,lambda_mult,n_0,given_points)
 
-    for jj in range(J):
-
+    # The first sample is loaded by default in the current code, so I
+    # think this is OK.
+    for jj in range(J-1):
+        print(jj)
         kl_like.sample()
 
         kl_like.coeff
@@ -181,7 +183,7 @@ def test_kl_like_coeff_changing_externally():
 
     n_0 = 1.0
 
-    given_points = np.random.rand(3,J) - 0.5
+    given_points = PointsHolder(np.random.rand(3,J) - 0.5)
 
     kl_like = UniformKLLikeCoeff(mesh,J,delta,lambda_mult,n_0,given_points)
 
@@ -189,11 +191,21 @@ def test_kl_like_coeff_changing_externally():
 
     kl_like.sample()
 
-    kl_like.stochastic_points = kl_like.stochastic_points[-1:,:]
+    kl_like.stochastic_points.points = kl_like.stochastic_points.points[-1:,:]
     
     try:
         kl_like.sample()
     except SamplingError:
         pass
 
-    assert kl_like.stochastic_points.shape[0] == 0
+    assert kl_like.stochastic_points.points.shape[0] == 0
+
+
+
+# The following is just to enable the tests to take place
+
+class PointsHolder(object):
+
+    def __init__(self,points):
+
+        self.points = points

@@ -248,25 +248,34 @@ class UniformKLLikeCoeff(object):
     coeff - a UFL-implemented coeff, suitable for using in a
     helmholtz-firedrake StochasticHelmholtzProblem.
 
-    stochastic_points - an object which has an attribute called points,
-    which is a numpy array of width J (see init documentation)
-    containing the values of y_j (for many realisations of the vector
-    y). The attribute stochastic_points.points can be changed between
-    calls to sample.
-
     Methods:
 
-    sample - as in the requirements for StochasticHelmholtzProblem, but
-    has further, important functionality. See documentation for the
-    method.
+    sample - as in the requirements for StochasticHelmholtzProblem.
 
-    reinitialise - Restores the list of 'stochastic points' to the
-    original list, and initialises the coefficients in series expansion
-    to NaN - not sure this stuff about NaNs is true actually.
+    current_point - gives the 'stochastic coefficients' y_j
+    corresponding to the current realisation of the coefficient.
+
+    unsampled_points - gives the 'stochastic coefficients' y_j
+    corresponding to all the realisations of the coefficient that have
+    not yet been sampled.
+
+    current_and_unsampled_points - gives the 'stochastic coefficients'
+    y_j corresponding to both the current realisation of the coefficient
+    and all the realisations of the coefficient that have not yet been
+    sampled.
+
+    reorder - allows the user to reorder the points that have not yet
+    been sampled, so that they are sampled in a different order.
+
+    reinitialise - Resets the coefficient, as if it has just been
+    reinitialised.
+
+    change_all_points - allows the user to completely change the
+    'stochastic coefficients' y_j.
 
     """
 
-    def __init__(self,mesh,J,delta,lambda_mult,n_0,given_points):
+    def __init__(self,mesh,J,delta,lambda_mult,n_0,stochastic_points):
         """Initialises the coefficient.
 
         The coefficient is of the form
@@ -294,20 +303,18 @@ class UniformKLLikeCoeff(object):
         n_0 - float or UFL expression on mesh - the mean of the
         expansion.
 
-        given_points - an object which has an attribute called points,
-        which is a numpy ndarray of floats, of width J and some
+        stochastic_points - A numpy ndarray of floats, of width J and some
         length. Each row gives the points y in 'stochastic space' at
         which the coefficient will be evaluated.
-        
-        More methods are included - see the code.
         """
+        assert J == stochastic_points.shape[1]
+        
         self._J = J
         
-        self._stochastic_points_copy = np.array(deepcopy(given_points.points),ndmin=2)
-
-        self.stochastic_points = given_points
+        self._update_stochastic_points_copy(stochastic_points)
         
-        # self._stochastic_points_constants are defined in here
+        # self._stochastic_points and self._stochastic_points_constants
+        # are defined in here
         self.reinitialise()
 
         self._mesh = mesh
@@ -338,46 +345,103 @@ class UniformKLLikeCoeff(object):
     def sample(self):
         """Samples the coefficient, selects the next 'stochastic point'.
 
-        Behaviour is as follows: when sample() is called, the first row
-        is deleted from self.stochastic_points.points. Then the
-        Firedrake constants underlying the coefficient are updated with
-        the values contained in the (new) first row of
-        self.stochastic_points.points.
-
         If all the stochastic points have been sampled, returns a
         SamplingError.
 
         """
-        self.stochastic_points.points = self.stochastic_points.points[1:,:]
-        
-        if self.stochastic_points.points.shape[0] == 0:
+        if self._stochastic_points.shape[0] == 0:
             raise SamplingError
 
         else:
-            self.first_row_assign()
-
-    def reinitialise(self):
-        """Restores all stochastic points, and resets the Constants."""
-
-        self.stochastic_points.points = deepcopy(self._stochastic_points_copy)
-
-        # Update Constants if they already exist, create them if not.
-        try:
-            self.first_row_assign()
-        except AttributeError:
-            self._stochastic_points_constants = np.array(
-                [fd.Constant(self.stochastic_points.points[0,jj])
-                 for jj in range(self._J)])
-
-    def first_row_assign(self):
-        """Assigns the first row of stochastic_points to Constants."""
-        for jj in range(self._J):
-            self._stochastic_points_constants[jj].assign(
-                self.stochastic_points.points[0,jj])
+            self._update_current_point_stochastic_points()
+            self._constants_assign()
 
     def current_point(self):
         """Grabs the current point."""
-        return self.stochastic_points.points[0,:]
+        return self._current_point
+
+    def unsampled_points(self):
+        return self._stochastic_points
+
+    def current_and_unsampled_points(self):
+        return np.vstack((self.current_point(),self.unsampled_points()))
+
+    def reorder(self,indices,include_current_point=False):
+        """Reorders the 'stochastic points'.
+
+        Parameters: indices - a numpy array containing the first L integers (including zero) in some order (i.e. the output from np.argsort).
+
+        If include_current_points = True, then the values given by
+        self.current_and_unsampled_points() will be sorted according to
+        the ordering given by indices, and the stochastic point at the
+        top of the resulting array will be set as the current point. In
+        this case L should be the number of rows in the output of
+        self.current_and_unsampled_points().
+
+        If include_current_points = False, then only the values given by
+        self._unsampled_points() will be sorted, and the value of
+        self._current_point() will remain unchanged. In this case L
+        should be the number of rows in the output of
+        self.unsampled_points().
+        """
+        if include_current_point:
+            points_to_reorder = self.current_and_unsampled_points()
+        else:
+            points_to_reorder = self.unsampled_points()
+            
+        self._stochastic_points = points_to_reorder[indices,:]
+
+        if include_current_point:
+            self._update_current_point_stochastic_points()
+
+            self._constants_assign()        
+
+    def reinitialise(self):
+        """Restores all stochastic points, and resets the Constants.
+
+        Note: This will not take into account the use of the reorder()
+        method - it will reset the stochastic points to the values they
+        had after the last call to init or change_all_points().
+        """
+
+        self._stochastic_points = deepcopy(self._stochastic_points_copy)
+
+        self._update_current_point_stochastic_points()
+
+        # Update Constants if they already exist, create them if not.
+        try:
+            self._constants_assign()
+        except AttributeError:
+            self._stochastic_points_constants = np.array(
+                [fd.Constant(self._current_point[jj])
+                 for jj in range(self._J)])
+
+    def _constants_assign(self):
+        """Assigns self._current_point to the Constants."""
+        for jj in range(self._J):
+            self._stochastic_points_constants[jj].assign(
+                self._current_point[jj])
+
+    def change_all_points(self,stochastic_points):
+        """Completely change all the stochastic points.
+
+        Like calling init with a different stochastic_points.
+        """
+        
+        self._update_stochastic_points_copy(stochastic_points)
+
+        self.reinitialise()
+
+    def _update_current_point_stochastic_points(self):
+
+        self._current_point = self._stochastic_points[0,:]
+
+        self._stochastic_points = self._stochastic_points[1:,:]
+
+    def _update_stochastic_points_copy(self,stochastic_points):
+        self._stochastic_points_copy = np.array(deepcopy(stochastic_points),ndmin=2)
+
+    
                    
 class SamplingError(Exception):
     """Error raised when all points have been sampled."""

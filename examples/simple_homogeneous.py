@@ -1,3 +1,7 @@
+# Assumes this code is being run from the 'examples' folder. Otherwise,
+# add the helmholtz_firedrake folder to your PYTHONPATH
+import sys
+sys.path.append('../')
 from firedrake import *
 import numpy as np
 from helmholtz_firedrake import problems as hh

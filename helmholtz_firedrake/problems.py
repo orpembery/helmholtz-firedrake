@@ -43,6 +43,10 @@ class HelmholtzProblem(object):
         solve - solves the PDE using (preconditioned) GMRES and updates
         the attributes u_h and GMRES_its with the solution and the
         number of GMRES iterations, respectively.
+
+        There are more methods defined, but the documentation hasn't
+        been updated yet. See the code for more details.
+
     """
 
     def __init__(self, k, V,
@@ -310,10 +314,24 @@ class HelmholtzProblem(object):
                                    "pc_type": "lu",
                                    "mat_type": "aij",
                                    "pc_factor_mat_solver_type": "mumps"}
-        
+
+    def matrix(self):
+        """Outputs the matrix of the discretisation of the form.
+
+        Only use this if you have <= 10^4 degrees of freedom.
+
+        Note: this function assembles the matrix (in Firedrake speak).
+
+        output - numpy array - the matrix corresponding to the
+        discretisation of the sesquilinear form.
+        """
+        self._initialise_problem()
+
+        return fd.assemble(self._a).M.values      
         
 
 class StochasticHelmholtzProblem(HelmholtzProblem):
+
     """Defines a stochastic Helmholtz finite-element problem.
 
     All attributes and methods are as in HelmholtzProblem, except for

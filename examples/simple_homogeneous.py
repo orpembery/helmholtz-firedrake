@@ -12,7 +12,9 @@ k = 30.0
 # Define a mesh that keeps pollution error bounded
 num_cells = h_to_num_cells(k**-1.5,2)
 
-mesh = UnitSquareMesh(num_cells,num_cells)
+L = 1.0
+
+mesh = SquareMesh(num_cells,num_cells,1.0)
 
 # Use piecewise-linear finite elements
 V = FunctionSpace(mesh,"CG",1)

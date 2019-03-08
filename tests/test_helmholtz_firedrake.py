@@ -1,3 +1,7 @@
+# Assumes this code is being run from the top level folder. Otherwise,
+# add the helmholtz_firedrake folder to your PYTHONPATH
+import sys
+sys.path.append('.')
 import helmholtz_firedrake.problems as hh
 import helmholtz_firedrake.utils as utils
 import firedrake as fd

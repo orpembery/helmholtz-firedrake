@@ -187,6 +187,10 @@ def test_HelmholtzProblem_solver_convergence():
 
             prob.solve()
 
+            x = fd.SpatialCoordinate(mesh)
+            
+            exact_soln = fd.exp(1j * k * fd.dot(x,fd.as_vector(d)))
+
             log_err_L2[ii_points,ii_k] = np.log(fd.norms.errornorm(exact_soln,prob.u_h,norm_type="L2"))
             log_err_H1[ii_points,ii_k] = np.log(fd.norms.errornorm(exact_soln,prob.u_h,norm_type="H1"))
 

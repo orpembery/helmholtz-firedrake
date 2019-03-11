@@ -177,14 +177,13 @@ def test_HelmholtzProblem_solver_convergence():
             mesh = fd.UnitSquareMesh(num_points[ii_points],num_points[ii_points])
             V = fd.FunctionSpace(mesh, "CG", 1)
 
-            x = fd.SpatialCoordinate(mesh)
-            nu = fd.FacetNormal(mesh)
-            d = fd.as_vector([1.0/np.sqrt(2.0),1.0/np.sqrt(2.0)])
-            exact_soln = fd.exp(1j * k * fd.dot(x,d))
-            f = 0.0
-            g = 1j*k*fd.exp(1j*k*fd.dot(x,d))*(fd.dot(d,nu)-1)
+            prob = hh.HelmholtzProblem(k,V)
 
-            prob = hh.HelmholtzProblem(k,V,f=f,g=g)
+            angle = 2.0*np.pi/7.0
+
+            d = [np.cos(angle),np.sin(angle)]
+            
+            prob.f_g_plane_wave(d)
 
             prob.solve()
 

@@ -480,3 +480,20 @@ def test_bounded_error_mesh_size():
     """Test utils.bounded_error_mesh_size."""
 
     assert np.isclose(utils.bounded_error_mesh_size(1),1.5)
+
+def test_f_g_plane_wave():
+    """Tests plane wave setter doesn't crash. That's all."""
+
+    k = 10.0
+
+    mesh = fd.UnitSquareMesh(10,10)
+
+    V = fd.FunctionSpace(mesh,"CG",1)
+    
+    prob = hh.HelmholtzProblem(k,V)
+
+    angle = 2.0 * np.pi/7.0
+
+    d = [np.cos(angle),np.sin(angle)]
+    
+    prob.f_g_plane_wave(d)

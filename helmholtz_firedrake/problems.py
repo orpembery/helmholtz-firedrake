@@ -282,6 +282,8 @@ class HelmholtzProblem(object):
         the direction in which the plane wave propagates.
         """
 
+        d = fd.as_vector(d)
+        
         self.set_f(0.0)
 
         x = fd.SpatialCoordinate(self.V.mesh())

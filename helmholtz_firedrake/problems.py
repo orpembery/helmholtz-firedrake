@@ -275,8 +275,12 @@ class HelmholtzProblem(object):
         plt.show()
 
     def f_g_plane_wave(self,
-                       d=fd.as_vector([1.0/np.sqrt(2.0),1.0/np.sqrt(2.0)])):
-        """Sets f and g to correspond to a plane wave"""
+                       d=[1.0/np.sqrt(2.0),1.0/np.sqrt(2.0)]):
+        """Sets f and g to correspond to a plane wave
+
+        Parameters - d - list of the length of the spatial dimension;
+        the direction in which the plane wave propagates.
+        """
 
         self.set_f(0.0)
 

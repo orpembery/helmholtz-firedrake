@@ -278,8 +278,8 @@ def norm_weighted(u,k):
                             + (k**2.0 - 1.0)*norm(u,norm_type="L2")**2.0)
 
 def bounded_error_mesh_size(p):
-    """Gives the exponent for the mesh size that keeps relative error
-    bounded for p-FEs.
+    """Gives the exponent for the mesh size that keeps the error
+    bounded for p-FEs, i.e., error \lesssim h^{p+1} k^{p+2}.
 
     It is not proven that this mesh size is sufficient to keep the
     relative error bounded for degree p finite-elements, but it seems to

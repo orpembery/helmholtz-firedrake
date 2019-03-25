@@ -35,18 +35,26 @@ class HelmholtzProblem(object):
 
         V - the Firedrake FunctionSpace on which u_h is defined.
 
-    Methods defined:
+    Methods defined (see the individual methods for more detailed
+    syntax):
 
         set_prop (where prop is one of k, A, n, A_pre, n_pre, f, g) -
         sets the corresponding attribute and re-initialises the problem,
 
-        solve - solves the PDE using (preconditioned) GMRES and updates
-        the attributes u_h and GMRES_its with the solution and the
-        number of GMRES iterations, respectively.
+        solve - solves the PDE (preconditioned GMRES is the default) and
+        updates the attributes u_h and GMRES_its with the solution and
+        the number of GMRES iterations, respectively.
 
-        There are more methods defined, but the documentation hasn't
-        been updated yet. See the code for more details.
+        plot - plots the solution of the PDE.
 
+        f_g_plane_wave - sets f and g to correspond to a plane wave in a
+        homogeneous medium.
+
+        use_gmres - ensure (preconditioned) GMRES is used.
+
+        use_lu - use PETSc's standard LU solver.
+
+        use_mumps - use MUMPS as a direct solver.
     """
 
     def __init__(self, k, V,

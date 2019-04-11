@@ -447,5 +447,5 @@ class SamplingError(Exception):
     """Error raised when all points have been sampled."""
 
     def __init__(self):
-        print("All stochastic points have been sampled. Reinitialise the coefficient.")
+        pass
         

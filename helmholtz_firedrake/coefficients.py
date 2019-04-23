@@ -275,7 +275,7 @@ class UniformKLLikeCoeff(object):
 
     """
 
-    def __init__(self,mesh,J,delta,lambda_mult,n_0,stochastic_points):
+    def __init__(self,mesh,J,delta,lambda_mult,j_scaling,n_0,stochastic_points):
         """Initialises the coefficient.
 
         The coefficient is of the form
@@ -283,8 +283,8 @@ class UniformKLLikeCoeff(object):
         \[ n(y,x) = n_0 + \sum_{j=1}^J \sqrt{\lambda_j} y_j \psi_j,\]
 
         where the $\psi_j$ are given by 
-        \[ \psi_j(x) = \cos(j\pi x[0]) \cos((j+1)\pi x[1])...
-                           \cos((j+2)\pi x[2])\]
+        \[ \psi_j(x) = \cos(j\pi/j_scaling x[0]) \cos((j+1)\pi/j_scaling x[1])...
+                           \cos((j+2)\pi/j_scaling x[2])\]
         (where the third term is neglected in 2-D),
         the $\sqrt{\lambda_j}$ are chosen so that 
         \[\sqrt{\lambda_j} = lambda_mult j^{-1-\delta}\]
@@ -300,12 +300,19 @@ class UniformKLLikeCoeff(object):
         delta - positive real - controls the convergence rate of the
         series (see above).
 
+        lambda_mult - positive float - controls the absolute value of
+        the series (see above).
+
+        j_scaling - positive float - scales the oscillations in the
+        psi_j (see above).
+
         n_0 - float or UFL expression on mesh - the mean of the
         expansion.
 
         stochastic_points - A numpy ndarray of floats, of width J and some
         length. Each row gives the points y in 'stochastic space' at
         which the coefficient will be evaluated.
+
         """
         assert J == stochastic_points.shape[1]
         
@@ -324,14 +331,14 @@ class UniformKLLikeCoeff(object):
         # A bit of fiddling through this, because we want to start
         # indexing at 1 in the sum.
         
-        self._psij = np.array([fd.cos(float(jj+1) * np.pi * self._x[0])
-                               * fd.cos(float(jj+2) * np.pi * self._x[1])
+        self._psij = np.array([fd.cos(float(jj+1) * np.pi * self._x[0] / j_scaling)
+                               * fd.cos(float(jj+2) * np.pi * self._x[1] / j_scaling)
                                for jj in range(self._J)])
 
         if mesh.geometric_dimension() == 3:
           for jj in range(self._J):
               self._psij[jj] = self._psij[jj]\
-                               * fd.cos(float(jj+3) * np.pi * self._x[2])
+                               * fd.cos(float(jj+3) * np.pi * self._x[2] / j_scaling)
 
         self._sqrt_lambda = np.array([lambda_mult * float(jj+1)**(-1.0-delta)
                                       for jj in range(self._J)])

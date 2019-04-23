@@ -156,13 +156,15 @@ def test_kl_like_coeff_sampling():
 
     lambda_mult = 0.1
 
+    j_scaling = 1.0
+
     n_0 = 1.0
 
     num_points = 3
 
     stochastic_points = np.array(np.arange(float(num_points)),ndmin=2).transpose().repeat(J,axis=1)/float(2 * J)
 
-    kl_like = UniformKLLikeCoeff(mesh,J,delta,lambda_mult,n_0,
+    kl_like = UniformKLLikeCoeff(mesh,J,delta,lambda_mult,j_scaling,n_0,
                                  stochastic_points)
 
     # The first sample is loaded by default, so I think this is OK.
@@ -196,11 +198,13 @@ def test_kl_like_coeff_change_all_points():
 
     lambda_mult = 0.1
 
+    j_scaling = 1.0
+
     n_0 = 1.0
 
     stochastic_points = np.random.rand(3,J) - 0.5
 
-    kl_like = UniformKLLikeCoeff(mesh,J,delta,lambda_mult,n_0,
+    kl_like = UniformKLLikeCoeff(mesh,J,delta,lambda_mult,j_scaling,n_0,
                                  stochastic_points)
 
     new_points = np.random.rand(7,J) - 0.5
@@ -220,11 +224,13 @@ def test_kl_like_coeff_reorder():
 
     lambda_mult = 0.1
 
+    j_scaling = 1.0
+
     n_0 = 1.0
 
     stochastic_points_2 = np.array([[1.0,1.0],[2.0,2.0]])
 
-    kl_like = UniformKLLikeCoeff(mesh,J,delta,lambda_mult,n_0,
+    kl_like = UniformKLLikeCoeff(mesh,J,delta,lambda_mult,j_scaling,n_0,
                                  stochastic_points_2)
 
     kl_like.reorder([1,0],include_current_point=True)
@@ -233,8 +239,91 @@ def test_kl_like_coeff_reorder():
 
     stochastic_points_3 = np.array([[1.0,1.0],[2.0,2.0],[3.0,3.0]])
 
-    kl_like = UniformKLLikeCoeff(mesh,J,delta,lambda_mult,n_0,
+    kl_like = UniformKLLikeCoeff(mesh,J,delta,lambda_mult,j_scaling,n_0,
                                  stochastic_points_3)
 
     kl_like.reorder([1,0],include_current_point=False)
     assert (kl_like.unsampled_points() == np.array([[3.0,3.0],[2.0,2.0]])).all()
+
+def test_kl_like_j_scaling():
+    """Tests the KL-like coefficient with scaled j doesn't do anything weird."""
+
+    mesh = fd.UnitSquareMesh(10,10)
+
+    J = 10
+
+    delta = 2.0
+
+    lambda_mult = 0.1
+
+    n_0 = 1.0
+
+    num_points = 3
+
+    stochastic_points = np.array(np.arange(float(num_points)),ndmin=2).transpose().repeat(J,axis=1)/float(2 * J)
+
+    for j_scaling in [0.1,0.3,0.5,0.7,0.9,1.0]:
+    
+        kl_like = UniformKLLikeCoeff(mesh,J,delta,lambda_mult,j_scaling,n_0,
+                                     stochastic_points)
+
+        # The first sample is loaded by default, so I think this is OK.
+        assert (kl_like.current_point() == 0.0).all()
+
+        for jj in range(num_points-1):
+            kl_like.sample()
+
+            assert (kl_like.current_point() == float(jj+1)/float(2 * J)).all()
+
+        try:
+            kl_like.sample()
+            success = False
+        except SamplingError:
+            success = True
+
+        assert success
+
+def test_kl_like_j_scaling_correct_value():
+    """Tests the KL-like coefficient with scaled j gives the correct value."""
+
+    num_cells = 100
+    
+    mesh = fd.UnitSquareMesh(num_cells,num_cells)
+
+    J = 10
+
+    delta = 2.0
+
+    lambda_mult = 0.1
+
+    n_0 = 1.0
+
+    num_points = 3
+
+    stochastic_points = np.array([0.1 for jj in range(J)],ndmin=2)
+
+    j_scaling = 1.5
+
+    kl_like = UniformKLLikeCoeff(mesh,J,delta,lambda_mult,j_scaling,n_0,
+                                 stochastic_points)
+
+    point = (1.0,1.0)
+
+    true_value = n_0
+    
+    for jj in range(1,J+1):
+        true_value += stochastic_points[0,jj-1] * lambda_mult * jj**(-1.0-delta)\
+                      * np.cos(jj*np.pi/j_scaling) * np.cos((jj+1)*np.pi/j_scaling)
+        
+    V = fd.FunctionSpace(mesh,"DG",0)
+
+    interp_function = fd.Function(V)
+
+    interp_function.interpolate(kl_like.coeff)
+
+    # I've chosen the absolute tolerance here so that the test passes,
+    # but eeyeballing what happened when you changed the parameters
+    # etc. indicated everything was fine
+    assert np.isclose(interp_function.dat.data_ro[-1],true_value,atol = 1e-3)
+
+    

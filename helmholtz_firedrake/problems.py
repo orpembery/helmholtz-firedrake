@@ -1,6 +1,7 @@
 import firedrake as fd
 import numpy as np
 from matplotlib import pyplot as plt
+from helmholtz_firedrake.utils import nd_cutoff, nd_indicator
 
 class HelmholtzProblem(object):
     """Defines a finite-element approximation of a Helmholtz problem.
@@ -340,8 +341,101 @@ class HelmholtzProblem(object):
         """
         self._initialise_problem()
 
-        return fd.assemble(self._a).M.values      
+        return fd.assemble(self._a).M.values
+
+    def n_smooth_cutoff(self,centre,width,transition_zone_width):
+        """Applies a smooth cutoff function to n, so n=1 on the boundary.
+
+        The cutoff function is 1 on a square/cube, and zero outside a
+        slightly larger square/cube.
+
+        Inputs:
+
+        centre - numpy array containing the coordinates of the centre
+        of the cutoff zone.
+
+        width - the width of the zone on which the original value of n holds.
+
+        transition_zone_width - the width of the zone on which n
+        transfers from the original value to 1.
+
+        """
+        x = fd.SpatialCoordinate(self.V.mesh())
+
+        dim = self.V.mesh().geometric_dimension()
         
+        self.set_n(1.0 + nd_cutoff(x,centre,np.repeat(width,dim),np.repeat(transition_zone_width,dim)) * (self._n-1.0))
+
+    def sharp_cutoff(self,centre,width):
+        """Applies a sharp cutoff function to A&n.
+
+        Applying this function means A=I and n=1 on the boundary
+
+        The cutoff function is 1 on a square/cube, and zero outside
+        the square/cube.
+
+        Inputs:
+
+        centre - numpy array containing the coordinates of the centre
+        of the cutoff zone.
+
+        width - the width of the zone on which the original values of
+        A & n hold.
+
+        """
+        x = fd.SpatialCoordinate(self.V.mesh())
+
+        dim = self.V.mesh().geometric_dimension()
+
+        indicator_region = np.array(centre) + np.repeat(0.5*np.array([-width,width],ndmin=2),dim,axis=0)
+        
+        ind = nd_indicator(x,1.0,indicator_region)
+        
+        self.set_n(1.0 +  ind * (self._n-1.0))
+
+        identity = fd.as_matrix([[1.0,0.0],[0.0,1.0]])
+
+        self.set_A(identity + ind * (self._A - identity))
+
+    def plot_n(self):
+        """Plots n"""
+        mesh = self.V.mesh()
+
+        V_plot = fd.FunctionSpace(mesh,"DG",0)
+
+        v = fd.Function(V_plot)
+
+        v.interpolate(self._n)
+
+        fd.plot(v,num_sample_points=1)
+
+        plt.show()
+
+    def f_g_scattered_plane_wave(self,d):
+        """Sets f and g to correspond to the scattering of a plane wave
+        by a compactly-supported heterogeneous region.
+
+        Parameters - d - list of the length of the spatial dimension;
+        the direction in which the plane wave propagates.
+        """
+
+        d = fd.as_vector(d)
+
+        x = fd.SpatialCoordinate(self.V.mesh())
+
+        # Incident wave
+        u_I = fd.exp(1j * self._k * fd.dot(x,d))
+
+        identity = fd.as_matrix([[1.0,0.0],[0.0,1.0]])
+        
+        f = fd.div(fd.dot((identity-self._A),fd.grad(u_I))) + self._k**2.0 * fd.inner((1.0-self._n), u_I)
+
+        self.set_f(f)
+
+        self.set_g(0.0)
+
+        
+
 
 class StochasticHelmholtzProblem(HelmholtzProblem):
 

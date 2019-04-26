@@ -434,7 +434,10 @@ class HelmholtzProblem(object):
 
         self.set_g(0.0)
 
-        
+    def n_min(self,n_min):
+        """Ensure n \geq n_min everywhere."""
+
+        self.set_n(fd.conditional(fd.lt(fd.real(self._n),n_min),n_min,self._n))
 
 
 class StochasticHelmholtzProblem(HelmholtzProblem):

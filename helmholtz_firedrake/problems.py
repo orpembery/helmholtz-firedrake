@@ -1,6 +1,7 @@
 import firedrake as fd
 import numpy as np
 from matplotlib import pyplot as plt
+from helmholtz_firedrake.utils import nd_cutoff
 
 class HelmholtzProblem(object):
     """Defines a finite-element approximation of a Helmholtz problem.
@@ -340,7 +341,29 @@ class HelmholtzProblem(object):
         """
         self._initialise_problem()
 
-        return fd.assemble(self._a).M.values      
+        return fd.assemble(self._a).M.values
+
+    def n_cutoff(self,centre,width,transition_zone_width):
+        """Applies a smooth cutoff function, so n is one on the boundary.
+
+        The cutoff function is 1 on a square/cube, and zero outside a
+        slightly larger square/cube.
+
+        Inputs:
+
+        centre - numpy array containing the coordinates of the centre
+        of the cutoff zone.
+
+        width - the width of the zone on which the original value of n holds.
+
+        transition_zone_width - the width of the zone on which n
+        transfers from the original value to 1.
+        """
+        x = fd.SpatialCoordinate(self.V.mesh())
+
+        dim = self.V.mesh().geometric_dimension()
+        
+        self._n = 1.0 + nd_cutoff(x,centre,np.repeat(width,dim),np.repeat(transition_zone_width,dim)) * (self._n-1.0)
         
 
 class StochasticHelmholtzProblem(HelmholtzProblem):

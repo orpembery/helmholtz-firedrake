@@ -3,6 +3,7 @@ import subprocess
 import datetime
 import csv
 from firedrake import norm, sign, real
+import firedrake as fd
 import pandas as pd
 
 def h_to_num_cells(h,d):
@@ -349,3 +350,103 @@ def flatiter_hack(constant_array,coords):
         coords = tuple(np.zeros(len(coords),dtype=int))
 
     return coords
+
+def one_d_transition(x,eps):
+    """Defines a smooth function in 1-d.
+
+    The cut off function $\psi_{\eps}$ satisfies:
+
+    \psi_{\eps}(x) = 0 if x < 0
+
+    \psi_{\eps}(x) = 1 if x > \eps
+
+    \psi_{\eps}(x) is smooth.
+
+    Input:
+
+    x - one 'dimension' of a UFL SpatialCoordinate (possibly affinely
+    transformed by a float).
+
+    eps - a positive float.
+
+    This is based on a construction I first saw in
+    https://math.stackexchange.com/a/197473.
+    """
+
+    return f(x)/(f(x)+f(eps-x))
+
+def f(x):
+    """Helper function for one_d_transition.
+
+    It didn't work when coded up directly....
+    """
+
+    machine_eps = np.finfo(float).eps
+    
+    return fd.exp(-new_max(x,machine_eps)**(-1.0)) * heaviside(x)
+
+def new_max(a,b):
+    """Helper function for f.
+
+    a and b can be dimensions of a UFL SpatialCoordinate.
+    """
+
+    return fd.conditional(fd.eq(a,b),a,heaviside(b-a)*b + heaviside(a-b)*a)
+
+def one_d_cutoff(x,y,w,eps):
+    """Defines a Cutoff function in 1-d.
+
+    The cuttoff function \phi has the following properties:
+
+    \phi(x) = 1 if x \in [y-w/2,y+w/2],
+
+    \phi(x) = 0 if x > y + w/2 + \eps or x < y - w/2 - \eps,
+
+    \phi(x) is smooth.
+
+    Inputs:
+
+    (We use 'region of interest' as shorthand for 'the region on which
+    phi(x) = 1'.)
+
+    x - one 'dimension' of a UFL SpatialCoordinate
+
+    y - float - the 'centre' of the region of interest.
+
+    w - positive float - the width of the region of interest
+
+    eps - positive float - the width of the region on which \phi decays
+    to zero.
+    """
+
+    #return Iab(x,0.0,1.0)/(1.0 + fd.exp(1.0/x + 1.0/(1.0-x))) + Iab(x,1.0,100.0) # Need to stick a warning in if this is used
+    
+    return one_d_transition(x-y+w/2.0+eps,eps)*one_d_transition(y+w/2.0+eps-x,eps)
+
+def nd_cutoff(x,y,w,eps):
+    """Defines a Cutoff function in multiple dimensions.
+
+    The cuttoff function \phi has the following properties:
+
+    \phi(x) = 1 if x \in X_j [y[j]-w[j]/2,y[j]+w[j]/2],
+
+    \phi(x) = 0 if x[j] > y[j] + w[j]/2 + \eps[j] or x[j] < y[j] - w[j]/2 - \eps[j],
+
+    \phi(x) is smooth.
+
+    Inputs:
+
+    (We use 'region of interest' as shorthand for 'the region on which
+    phi(x) = 1'.)
+
+    x - a UFL SpatialCoordinate (of length d)
+
+    y - numpy array of length d of floats - the 'centre' of the region of interest.
+
+    w - numpy array of length d of positive floats - the width of the region of interest (in each dimension)
+
+    eps - numpy array of length d of positive floats - the width of the region on which \phi decays
+    to zero (in each dimension).
+    """
+
+    return np.array([one_d_cutoff(x[jj],y[jj],w[jj],eps[jj]) for jj in range(x.geometric_dimension())]).prod()

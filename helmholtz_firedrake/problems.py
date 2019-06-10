@@ -319,6 +319,9 @@ class HelmholtzProblem(object):
 
         self._solver_params_override = False
 
+        if not self._initialised:
+            self._initialise_problem()
+        
         self._set_pre()
 
     def use_mumps(self):

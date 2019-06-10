@@ -2,6 +2,7 @@ import firedrake as fd
 import numpy as np
 from matplotlib import pyplot as plt
 from helmholtz_firedrake.utils import nd_cutoff, nd_indicator
+from warnings import warn
 
 class HelmholtzProblem(object):
     """Defines a finite-element approximation of a Helmholtz problem.
@@ -239,6 +240,7 @@ class HelmholtzProblem(object):
 
 
         if self._A_pre == None or self._n_pre == None:
+            warn("Either A_pre or n_pre is None - preconditioner will not be set.",Warning)
             self._a_pre = None
 
             if self._solver_params_override == False:

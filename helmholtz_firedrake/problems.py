@@ -374,7 +374,9 @@ class HelmholtzProblem(object):
 
         dim = self.V.mesh().geometric_dimension()
         
-        self.set_n(1.0 + nd_cutoff(x,centre,np.repeat(width,dim),np.repeat(transition_zone_width,dim)) * (self._n-1.0))
+        self.set_n(1.0 + nd_cutoff(x,centre,np.repeat(width,dim),
+                                   np.repeat(transition_zone_width,dim))\
+                   * (self._n-1.0))
 
     def sharp_cutoff(self,centre,width,apply_to_preconditioner=False):
         """Applies a sharp cutoff function to A&n.
@@ -400,7 +402,9 @@ class HelmholtzProblem(object):
 
         dim = self.V.mesh().geometric_dimension()
 
-        indicator_region = np.array(centre) + np.repeat(0.5*np.array([-width,width],ndmin=2),dim,axis=0)
+        indicator_region = np.array(centre)\
+                           + np.repeat(0.5*np.array([-width,width],ndmin=2),
+                                       dim,axis=0)
         
         ind = nd_indicator(x,1.0,indicator_region)
 
@@ -449,7 +453,8 @@ class HelmholtzProblem(object):
 
         identity = fd.as_matrix([[1.0,0.0],[0.0,1.0]])
         
-        f = fd.div(fd.dot((identity-self._A),fd.grad(u_I))) + self._k**2.0 * fd.inner((1.0-self._n), u_I)
+        f = fd.div(fd.dot((identity-self._A),fd.grad(u_I)))\
+            + self._k**2.0 * fd.inner((1.0-self._n), u_I)
 
         self.set_f(f)
 
@@ -458,13 +463,16 @@ class HelmholtzProblem(object):
     def n_min(self,n_min,apply_to_preconditioner=False):
         """Ensure n \geq n_min everywhere.
 
-        If apply_to_preconditioner is True, then this is only done to the preconditioner."""
+        If apply_to_preconditioner is True,then this is only done to the
+        preconditioner."""
 
         if apply_to_preconditioner:
-            self.set_n_pre(fd.conditional(fd.lt(fd.real(self._n),n_min_pre),n_min,self._n_pre))
+            self.set_n_pre(fd.conditional(fd.lt(fd.real(self._n_pre),
+                                                n_min_pre),n_min,self._n_pre))
 
         else:           
-            self.set_n(fd.conditional(fd.lt(fd.real(self._n),n_min),n_min,self._n))
+            self.set_n(fd.conditional(fd.lt(fd.real(self._n),
+                                            n_min),n_min,self._n))
 
 
 class StochasticHelmholtzProblem(HelmholtzProblem):

@@ -94,6 +94,7 @@ class HelmholtzProblem(object):
         g - A UFL expression for the right-hand side of the impedance
         boundary condition.
         """
+        #import pdb; pdb.set_trace()
         self._initialised = False
         
         self.set_k(k)
@@ -134,8 +135,11 @@ class HelmholtzProblem(object):
         self._solver.solve()
 
         assert isinstance(self._solver.snes.ksp.getIterationNumber(),int)
-       
-        self.GMRES_its = self._solver.snes.ksp.getIterationNumber()
+
+        if not self._solver_params_override:
+            self.GMRES_its = self._solver.snes.ksp.getIterationNumber()
+        else:
+            self.GMRES_its = -1
 
     def _initialise_problem(self):
         """
@@ -319,10 +323,11 @@ class HelmholtzProblem(object):
 
         self._solver_params_override = False
 
-        if not self._initialised:
-            self._initialise_problem()
+        self._initialise_problem()
         
         self._set_pre()
+
+
 
     def use_mumps(self):
         """Forces the use of the direct solver MUMPS."""
@@ -369,9 +374,11 @@ class HelmholtzProblem(object):
 
         dim = self.V.mesh().geometric_dimension()
         
-        self.set_n(1.0 + nd_cutoff(x,centre,np.repeat(width,dim),np.repeat(transition_zone_width,dim)) * (self._n-1.0))
+        self.set_n(1.0 + nd_cutoff(x,centre,np.repeat(width,dim),
+                                   np.repeat(transition_zone_width,dim))\
+                   * (self._n-1.0))
 
-    def sharp_cutoff(self,centre,width):
+    def sharp_cutoff(self,centre,width,apply_to_preconditioner=False):
         """Applies a sharp cutoff function to A&n.
 
         Applying this function means A=I and n=1 on the boundary
@@ -387,20 +394,33 @@ class HelmholtzProblem(object):
         width - the width of the zone on which the original values of
         A & n hold.
 
+        apply_to_preconditioner - boolean - if true, does this only to
+        the preconditioner, rather than the problem itself. Used mainly
+        when setting an already-existing problem as the preconditioner.
         """
         x = fd.SpatialCoordinate(self.V.mesh())
 
         dim = self.V.mesh().geometric_dimension()
 
-        indicator_region = np.array(centre) + np.repeat(0.5*np.array([-width,width],ndmin=2),dim,axis=0)
+        indicator_region = np.array(centre)\
+                           + np.repeat(0.5*np.array([-width,width],ndmin=2),
+                                       dim,axis=0)
         
         ind = nd_indicator(x,1.0,indicator_region)
-        
-        self.set_n(1.0 +  ind * (self._n-1.0))
 
         identity = fd.as_matrix([[1.0,0.0],[0.0,1.0]])
 
-        self.set_A(identity + ind * (self._A - identity))
+        if apply_to_preconditioner:
+
+            self.set_n_pre(1.0 +  ind * (self._n_pre-1.0))       
+        
+            self.set_A_pre(identity + ind * (self._A_pre - identity))
+            
+        else:
+                
+            self.set_n(1.0 +  ind * (self._n-1.0))       
+
+            self.set_A(identity + ind * (self._A - identity))
 
     def plot_n(self):
         """Plots n"""
@@ -433,16 +453,26 @@ class HelmholtzProblem(object):
 
         identity = fd.as_matrix([[1.0,0.0],[0.0,1.0]])
         
-        f = fd.div(fd.dot((identity-self._A),fd.grad(u_I))) + self._k**2.0 * fd.inner((1.0-self._n), u_I)
+        f = fd.div(fd.dot((identity-self._A),fd.grad(u_I)))\
+            + self._k**2.0 * fd.inner((1.0-self._n), u_I)
 
         self.set_f(f)
 
         self.set_g(0.0)
 
-    def n_min(self,n_min):
-        """Ensure n \geq n_min everywhere."""
+    def n_min(self,n_min,apply_to_preconditioner=False):
+        """Ensure n \geq n_min everywhere.
 
-        self.set_n(fd.conditional(fd.lt(fd.real(self._n),n_min),n_min,self._n))
+        If apply_to_preconditioner is True,then this is only done to the
+        preconditioner."""
+
+        if apply_to_preconditioner:
+            self.set_n_pre(fd.conditional(fd.lt(fd.real(self._n_pre),
+                                                n_min),n_min,self._n_pre))
+
+        else:           
+            self.set_n(fd.conditional(fd.lt(fd.real(self._n),
+                                            n_min),n_min,self._n))
 
 
 class StochasticHelmholtzProblem(HelmholtzProblem):

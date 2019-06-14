@@ -659,3 +659,57 @@ def test_n_min_pre():
     n_fn.interpolate(prob._n_pre)
     
     assert np.isclose(n_min_val,n_fn.dat.data_ro).all()
+
+def test_n_min_ufl():
+    """Tests that the sharp cutoff function does what it should when n is given by a ufl expression."""
+
+    k = 10.0
+
+    mesh = fd.UnitSquareMesh(10,10)
+
+    V = fd.FunctionSpace(mesh,"CG",1)
+
+    x = fd.SpatialCoordinate(mesh)
+    
+    n = 1.0 + fd.sin(30*x[0])
+    
+    prob = hh.HelmholtzProblem(k,V,n=n)
+
+    n_min_val = 2.0
+    
+    prob.n_min(n_min_val)
+
+    V_DG = fd.FunctionSpace(mesh,"DG",0)
+    
+    n_fn = fd.Function(V_DG)
+
+    n_fn.interpolate(prob._n)
+    
+    assert (n_fn.dat.data_ro >= n_min_val).all()
+
+def test_n_min_pre_ufl():
+    """Tests that the sharp cutoff function does what it should when n_pre is given by a UFL expression."""
+
+    k = 10.0
+
+    mesh = fd.UnitSquareMesh(10,10)
+
+    V = fd.FunctionSpace(mesh,"CG",1)
+
+    x = fd.SpatialCoordinate(mesh)
+    
+    n_pre = 1.0 + fd.sin(30*x[0])
+    
+    prob = hh.HelmholtzProblem(k,V,n_pre=n_pre,A_pre = fd.as_matrix([[1.0,0.0],[0.0,1.0]]))
+
+    n_min_val = 2.0
+    
+    prob.n_min(n_min_val,True)
+
+    V_DG = fd.FunctionSpace(mesh,"DG",0)
+    
+    n_fn = fd.Function(V_DG)
+
+    n_fn.interpolate(prob._n_pre)
+    
+    assert (n_fn.dat.data_ro >= n_min_val).all()

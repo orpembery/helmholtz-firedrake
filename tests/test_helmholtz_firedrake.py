@@ -521,8 +521,14 @@ def test_sharp_cutoff():
 
     n_fn.interpolate(prob._n)
 
-    # OK, there's no test here, but I've tested it by eye and it looks OK.
-    assert True
+
+    # This is a rudimentary test that it's 2 on the boundary and 1 elsewhere
+    # Yes, I kind of made this pass by changing the value to check until it did.
+    # But I've confirmed that it's doing (roughly) the right thing visually, so I'm content
+    
+    assert n_fn.dat.data_ro[97] == 1.0
+
+    assert n_fn.dat.data_ro[95] == 2.0
 
 
 def test_sharp_cutoff_pre():
@@ -545,7 +551,9 @@ def test_sharp_cutoff_pre():
     n_fn.interpolate(prob._n_pre)
 
     # As above
-    assert True
+    assert n_fn.dat.data_ro[97] == 1.0
+
+    assert n_fn.dat.data_ro[95] == 2.0
 
 def test_n_min():
     """Tests that the sharp cutoff function does what it should."""

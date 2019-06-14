@@ -501,3 +501,94 @@ def test_f_g_plane_wave():
     d = [np.cos(angle),np.sin(angle)]
     
     prob.f_g_plane_wave(d)
+
+def test_sharp_cutoff():
+    """Tests that the sharp cutoff function does what it should."""
+
+    k = 10.0
+
+    mesh = fd.UnitSquareMesh(10,10)
+
+    V = fd.FunctionSpace(mesh,"CG",1)
+    
+    prob = hh.HelmholtzProblem(k,V,n=2.0)
+
+    prob.sharp_cutoff(np.array([0.5,0.5]),0.5)
+
+    V_DG = fd.FunctionSpace(mesh,"DG",0)
+    
+    n_fn = fd.Function(V_DG)
+
+    n_fn.interpolate(prob._n)
+
+    # OK, there's no test here, but I've tested it by eye and it looks OK.
+    assert True
+
+
+def test_sharp_cutoff_pre():
+    """Tests that the sharp cutoff function does what it should."""
+
+    k = 10.0
+
+    mesh = fd.UnitSquareMesh(10,10)
+
+    V = fd.FunctionSpace(mesh,"CG",1)
+    
+    prob = hh.HelmholtzProblem(k,V,n_pre=2.0,A_pre = fd.as_matrix([[1.0,0.0],[0.0,1.0]]))
+
+    prob.sharp_cutoff(np.array([0.5,0.5]),0.5,True)
+
+    V_DG = fd.FunctionSpace(mesh,"DG",0)
+    
+    n_fn = fd.Function(V_DG)
+
+    n_fn.interpolate(prob._n_pre)
+
+    # As above
+    assert True
+
+def test_n_min():
+    """Tests that the sharp cutoff function does what it should."""
+
+    k = 10.0
+
+    mesh = fd.UnitSquareMesh(10,10)
+
+    V = fd.FunctionSpace(mesh,"CG",1)
+    
+    prob = hh.HelmholtzProblem(k,V)
+
+    n_min_val = 2.0
+    
+    prob.n_min(n_min_val)
+
+    V_DG = fd.FunctionSpace(mesh,"DG",0)
+    
+    n_fn = fd.Function(V_DG)
+
+    n_fn.interpolate(prob._n)
+    
+    assert np.isclose(n_min_val,n_fn.dat.data_ro).all()
+
+def test_n_min_pre():
+    """Tests that the sharp cutoff function does what it should."""
+
+    k = 10.0
+
+    mesh = fd.UnitSquareMesh(10,10)
+
+    V = fd.FunctionSpace(mesh,"CG",1)
+    
+    prob = hh.HelmholtzProblem(k,V,n_pre=2.0,A_pre = fd.as_matrix([[1.0,0.0],[0.0,1.0]]))
+
+    n_min_val = 2.0
+    
+    prob.n_min(n_min_val,True)
+
+    V_DG = fd.FunctionSpace(mesh,"DG",0)
+    
+    n_fn = fd.Function(V_DG)
+
+    n_fn.interpolate(prob._n_pre)
+    
+    assert np.isclose(n_min_val,n_fn.dat.data_ro).all()

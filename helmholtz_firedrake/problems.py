@@ -468,7 +468,7 @@ class HelmholtzProblem(object):
 
         if apply_to_preconditioner:
             self.set_n_pre(fd.conditional(fd.lt(fd.real(self._n_pre),
-                                                n_min_pre),n_min,self._n_pre))
+                                                n_min),n_min,self._n_pre))
 
         else:           
             self.set_n(fd.conditional(fd.lt(fd.real(self._n),

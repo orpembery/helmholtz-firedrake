@@ -112,38 +112,33 @@ class PiecewiseConstantCoeffGenerator(object):
             
         # Set up all the Firedrake Constants:
         self._constant_array = np.empty(num_pieces_list,dtype=object)
-        ca_flat = self._constant_array.flat
-        
-        for ii in ca_flat:
-            coords = utils.flatiter_hack(self._constant_array,ca_flat.coords)
-            
-            if self._coeff_dims == [2,2]:
-                self._constant_array[coords] = fd.Constant(
-                    np.array([[0.0,0.0],[0.0,0.0]]),domain=mesh)
-            elif self._coeff_dims == [1]:
-                self._constant_array[coords] = fd.Constant(0.0,domain=mesh)
 
-        # You can't reinitialise a flatiter (I think)
-        del(ca_flat)
+        with np.nditer(self._constant_array,flags=['refs_ok'],op_flags=['writeonly']) as array_it:
+            
+            for const in array_it:
+
+                if self._coeff_dims == [2,2]:
+                    const[...] = fd.Constant(np.array([[0.0,0.0],[0.0,0.0]]),domain=mesh)
+                elif self._coeff_dims == [1]:
+                    const[...] = fd.Constant(0.0,domain=mesh)
                 
         # Form coeff by looping over all the subdomains
         x = fd.SpatialCoordinate(mesh)
 
         self.coeff = coeff_pre
 
-        ca_flat = self._constant_array.flat
+        array_it = np.nditer(self._constant_array,flags=['refs_ok','multi_index'])
+
+        while not array_it.finished:
         
-        for ii in ca_flat:
-
-            coords = utils.flatiter_hack(self._constant_array,ca_flat.coords)
-
-            coords_t = np.array(coords,dtype=float).transpose()
+            const =  array_it[0]
             
-            loc_array = np.vstack((coords_t,coords_t + 1.0))\
-                        /float(self._num_pieces)
+            loc_array = np.array((array_it.multi_index,1+np.array(array_it.multi_index))
+                                 ,dtype='float').T/float(self._num_pieces)
             
-            self.coeff += utils.nd_indicator(
-                x,self._constant_array[coords],loc_array)
+            self.coeff += utils.nd_indicator(x,const,loc_array)
+
+            array_it.iternext()
 
     def sample(self):
         """Samples the coefficient coeff."""

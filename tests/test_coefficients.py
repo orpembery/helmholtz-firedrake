@@ -125,8 +125,16 @@ def test_matrices_noise_level():
     A_stoch = PiecewiseConstantCoeffGenerator(mesh,num_pieces,
                                                    noise_level,A_pre,[2,2])
 
+    A_func = fd.Function(V)
+    
     for ii in range(num_repeats):
         A_stoch.sample()
+
+    for ii_x in range(2):
+        for ii_y in range(2):
+            A_func.interpolate(A_stoch.coeff[ii_x,ii_y]-float(A_pre[ii_x,ii_y]))
+
+            assert (np.abs(A_func.dat.data_ro) <= noise_level).all()
 
         fl = A_stoch._constant_array.flat
         for jj in fl:
@@ -144,6 +152,40 @@ def test_matrices_noise_level():
             assert abs(A_stoch._constant_array[coords]\
                        .evaluate(None,None,(),None)[1,0]) <= noise_level
 
+def test_noise_level():
+    """Tests p/w const coeffs have correct noise_level.
+
+    Only works for the case coeff_pre = 1.0."""
+
+    mesh = fd.UnitSquareMesh(100,100)
+
+    num_pieces = 12
+    noise_level = 0.1
+    num_repeats = 100
+    
+    n_pre = 1.0
+    n_stoch = PiecewiseConstantCoeffGenerator(mesh,num_pieces,
+                                                   noise_level,n_pre,[1])
+
+    V = fd.FunctionSpace(mesh, "CG", 1)
+    n_func = fd.Function(V)
+    
+    for ii in range(num_repeats):
+        n_stoch.sample()
+
+        fl = n_stoch._constant_array.flat
+        for jj in fl:
+            coords = hh_utils.flatiter_hack(n_stoch._constant_array,fl.coords)
+
+            assert abs(n_stoch._constant_array[coords]\
+                       .evaluate(None,None,(),None)) <= noise_level
+
+        n_func.interpolate(n_stoch.coeff)
+
+        assert (np.abs(n_func.dat.data_ro-n_pre) <= noise_level).all()
+
+    
+            
 def test_kl_like_coeff_sampling():
     """Tests the KL-like coefficient samples and reintialises
     correctly."""

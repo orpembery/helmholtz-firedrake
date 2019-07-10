@@ -286,7 +286,7 @@ class HelmholtzProblem(object):
         """Plots the finite-element solution."""
 
         fd.plot(self.u_h,num_sample_points=1)
-
+        
         plt.show()
 
     def f_g_plane_wave(self,d):
@@ -433,7 +433,7 @@ class HelmholtzProblem(object):
         v.interpolate(self._n)
 
         fd.plot(v,num_sample_points=1)
-
+        
         plt.show()
 
     def f_g_scattered_plane_wave(self,d):

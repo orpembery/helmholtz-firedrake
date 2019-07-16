@@ -713,3 +713,34 @@ def test_n_min_pre_ufl():
     n_fn.interpolate(prob._n_pre)
     
     assert (n_fn.dat.data_ro >= n_min_val).all()
+
+def test_ilu():
+    """Tests that ILU functionality gives correct solution."""
+
+    k = 10.0
+
+    num_cells = utils.h_to_num_cells(k**-1.5,2)
+
+    mesh = fd.UnitSquareMesh(num_cells,num_cells)
+
+    V = fd.FunctionSpace(mesh,"CG",1)
+    
+    prob = hh.HelmholtzProblem(k,V)
+
+    angle = 2.0 * np.pi/7.0
+
+    d = [np.cos(angle),np.sin(angle)]
+    
+    prob.f_g_plane_wave(d)
+
+    for fill_in in range(40):
+    
+        prob.use_ilu_gmres(fill_in)
+
+        prob.solve()
+
+        x = fd.SpatialCoordinate(mesh)
+
+        # This error was found out by eye
+        assert np.abs(fd.norms.errornorm(fd.exp(1j * k * fd.dot(fd.as_vector(d),x)),uh=prob.u_h,norm_type='H1')) < 0.5
+    

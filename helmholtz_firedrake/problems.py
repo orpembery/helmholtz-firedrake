@@ -115,6 +115,8 @@ class HelmholtzProblem(object):
 
         self._solver_params_override = False
 
+        self._using_GMRES = True
+
         self.GMRES_its = -1
         """int - number of GMRES iterations. Initialised as -1."""
 
@@ -135,8 +137,8 @@ class HelmholtzProblem(object):
         self._solver.solve()
 
         assert isinstance(self._solver.snes.ksp.getIterationNumber(),int)
-
-        if not self._solver_params_override:
+        
+        if self._using_GMRES:
             self.GMRES_its = self._solver.snes.ksp.getIterationNumber()
         else:
             self.GMRES_its = -1
@@ -314,6 +316,8 @@ class HelmholtzProblem(object):
 
         self._solver_params_override = True
 
+        self._using_GMRES = False
+        
         self._solver_parameters={"ksp_type": "preonly",
                                  "pc_type": "lu"
                                  }
@@ -323,6 +327,8 @@ class HelmholtzProblem(object):
 
         self._solver_params_override = False
 
+        self._using_GMRES = True
+        
         self._initialise_problem()
         
         self._set_pre()
@@ -334,10 +340,28 @@ class HelmholtzProblem(object):
 
         self._solver_params_override = True
 
+        self._using_GMRES = False
+        
         self._solver_parameters = {"ksp_type" : "preonly",
                                    "pc_type": "lu",
                                    "mat_type": "aij",
                                    "pc_factor_mat_solver_type": "mumps"}
+
+    def use_ilu_gmres(self,k=0):
+        """Forces use of an ILU preconditioner with GMRES.
+
+        Parameters:
+
+        k - positive int - the 'fill in' factor, default 0.
+        """
+
+        self._solver_params_override = True
+
+        self._using_GMRES = True
+        
+        self._solver_parameters = {"ksp_type" : "gmres",
+                                   "pc_type": "ilu",
+                                   "pc_factor_levels" : k}
 
     def matrix(self):
         """Outputs the matrix of the discretisation of the form.

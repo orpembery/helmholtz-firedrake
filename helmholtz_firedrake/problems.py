@@ -139,7 +139,7 @@ class HelmholtzProblem(object):
         assert isinstance(self._solver.snes.ksp.getIterationNumber(),int)
         
         if self._using_GMRES:
-            self.GMRES_its = self._solver.snes.ksp.getIterationNumber()
+            self.GMRES_its = int(self._solver.snes.ksp.getIterationNumber())
         else:
             self.GMRES_its = -1
 

@@ -178,9 +178,9 @@ class PiecewiseConstantCoeffGenerator(object):
         return coeff
 
 
-class GammaConstantCoeffGenerator(object):
+class ExponentialConstantCoeffGenerator(object):
     """Does the work of n_stoch in StochasticHelmholtzProblem for the
-    case of a constant but gamma-distributed refractive index.
+    case of a constant but 1+exponential-distributed refractive index.
 
     Attribute:
 
@@ -193,30 +193,20 @@ class GammaConstantCoeffGenerator(object):
     + gamma(rate).
     """
 
-    def __init__(self,shape,scale,coeff_lower_bound):
-        """Initialises a constant, gamma-distributed constant.
+    def __init__(self,scale):
+        """Initialises a constant, 1+exponential-distributed constant.
 
         Parameters:
+        scale - the scale of the exponential distribution
 
-        shape - the shape of the gamma distribution (commonly called k).
-
-        scale - the scale of the gamma distribution (commonly
-        called theta).
-
-        coeff_lower_bound - the lower bound for the coefficient.
-
-        The mean of the gamma distribution is shape * scale and the
-        variance is shape * scale**2.
+        The mean of the exponential distribution is scale and the
+        variance is scale**2.
         """
 
         self._coeff_rand = fd.Constant(0.0)
 
-        self._coeff_lower_bound = coeff_lower_bound
-
-        self.coeff = self._coeff_lower_bound + self._coeff_rand
+        self.coeff = 1.0 + self._coeff_rand
         """Spatially homogeneous, but random coefficient."""
-
-        self._shape = shape
         
         self._scale = scale
         
@@ -225,7 +215,7 @@ class GammaConstantCoeffGenerator(object):
     def sample(self):
         """Samples the exponentially-distributed coefficient coeff."""
 
-        self._coeff_rand.assign(np.random.gamma(self._shape,self._scale))
+        self._coeff_rand.assign(np.random.exponential(self._scale))
 
 class UniformKLLikeCoeff(object):
     """A coefficient given by a KL-like expansion, with uniform R.V.s.

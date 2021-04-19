@@ -197,6 +197,7 @@ def csv_list_to_dataframe(csv_list,names_list):
     labels = []
 
     for csv_file in csv_list:
+        print(csv_file)
         this_output = read_repeats_from_csv(csv_file)
 
         labels.append([this_output[0][key] for key in names_list])
@@ -204,6 +205,10 @@ def csv_list_to_dataframe(csv_list,names_list):
         # Need to extend the output array or the array about to be added
         # if they're not the same size. Issues arise if the output array
         # hasn't been created yet.
+        # This gets a bit hacky for single runs:
+        if len(this_output[1].shape) == 1:
+            this_output = [this_output[0],np.array([this_output[1],this_output[1]])]
+            
         try:
             current_size = output_array.shape[1]
                    

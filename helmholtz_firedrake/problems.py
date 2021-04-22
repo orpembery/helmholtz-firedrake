@@ -4,6 +4,8 @@ from matplotlib import pyplot as plt
 from helmholtz_firedrake.utils import nd_cutoff, nd_indicator
 from warnings import warn
 
+acceptable_GMRES_its = 500
+
 class HelmholtzProblem(object):
     """Defines a finite-element approximation of a Helmholtz problem.
 
@@ -143,6 +145,11 @@ class HelmholtzProblem(object):
         else:
             self.GMRES_its = -1
 
+        # Warn if GMRES might have restarted
+        if self.GMRES_its > acceptable_GMRES_its:
+            warn('Number of GMRES iterations is greater than '+str(acceptable_GMRES_its)+'. GMRES will have restarted every '+str(acceptable_GMRES_its)+' iterations.',Warning)
+        
+
     def _initialise_problem(self):
         """
         Set up the Firedrake machinery for solving the problem.
@@ -263,7 +270,7 @@ class HelmholtzProblem(object):
                                          "snes_lag_preconditioner": -1,
                                          "pc_type": "lu",
                                          "ksp_reuse_preconditioner": True,
-                                         "ksp_gmres_restart": self.V.dim()+1,
+                                         "ksp_gmres_restart": acceptable_GMRES_its,
                                          } 
         
     def _set_L(self):

@@ -263,7 +263,7 @@ class HelmholtzProblem(object):
                                          "snes_lag_preconditioner": -1,
                                          "pc_type": "lu",
                                          "ksp_reuse_preconditioner": True,
-                                         "ksp_gmres_restart": (self.V.dof_count+1),
+                                         "ksp_gmres_restart": self.V.dim()+1,
                                          } 
         
     def _set_L(self):

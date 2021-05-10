@@ -27,8 +27,9 @@ class PiecewiseConstantCoeffGenerator(object):
     Method:
 
     sample - randomly updates coeff by randomly sampling around the
-    known background given by the input argument coeff_pre. Samples have
-    (entrywise) L^\infty norm <= noise_level almost surely.
+    known background given by the input argument coeff_pre. Samples 
+    are such that A_I has (entrywise) L^\infty norm <= noise_level
+    almost surely.
     """
 
     def __init__(self,mesh,num_pieces,noise_level,coeff_pre,coeff_dims):
